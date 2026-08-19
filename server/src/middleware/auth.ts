@@ -11,12 +11,15 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
     return res.status(401).json({ error: "No token provided" });
   }
   const token = header.split(" ")[1];
-  try {
-    req.user = verifyToken(token);
-    next();
-  } catch {
-    return res.status(401).json({ error: "Invalid or expired token" });
-  }
+if (!token) {
+  return res.status(401).json({ error: "No token provided" });
+}
+try {
+  req.user = verifyToken(token);
+  next();
+} catch {
+  return res.status(401).json({ error: "Invalid or expired token" });
+}
 };
 
 export const requireRole = (role: string) => {
