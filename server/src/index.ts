@@ -4,7 +4,9 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import authRoutes from "./routes/auth";
 import phcRoutes from "./routes/phc";
+
 import medicineStockRoutes from "./routes/medicineStock";
+import attendance from "./routes/attendance"
 
 dotenv.config();
 connectDB();
@@ -22,6 +24,8 @@ app.get("/api/health", (_req, res) => {
   app.use("/api/phc", phcRoutes);
 app.use("/api/stock", medicineStockRoutes);
 });
+app.use("/api/attendance", attendance);
+
 
 app.use("/api/auth", authRoutes);
 
