@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom"
 import Login from "./pages/Login"
+import Dashboard from "./pages/Dasboard"
 
 function Home() {
   return (
@@ -9,7 +10,7 @@ function Home() {
           Smart Health & Supply Chain Resilience
         </h1>
         <p className="text-slate-500 mt-2">
-          Routing is live — pages coming next.
+          Routing is live.
         </p>
       </div>
     </div>
@@ -21,6 +22,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/dashboard" element={<Dashboard />} />
     </Routes>
   )
 }
