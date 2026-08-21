@@ -1,6 +1,7 @@
 import { Router } from "express";
 import MedicineStock from "../models/MedicineStock";
 import { calculateDepletion } from "../utils/forecast";
+import "../models/Country";
 import { generateAlertText } from "../utils/gemini";
 
 const router = Router();
@@ -75,36 +76,37 @@ router.get("/alerts", async (req, res) => {
       })
       .filter((a) => a.status !== "healthy")
       .sort((a, b) => a.daysRemaining - b.daysRemaining)
-      .slice(0, 5); // limit Gemini calls to top 5 most urgent
+      .slice(0, 3);
 
-    const alerts = await Promise.all(
-      risky.map(async ({ item, daysRemaining, status }) => {
-        let message = `${item.medicineName} at ${item.phc?.name} will run out in ${daysRemaining} days.`;
-        try {
-          message = await generateAlertText(
-            item.phc?.name,
-            item.phc?.country?.name,
-            item.medicineName,
-            daysRemaining
-          );
-        } catch (err) {
-          console.error("Gemini call failed, using fallback message:", err);
-        }
-        return {
-          id: item._id,
-          phcName: item.phc?.name,
-          countryName: item.phc?.country?.name,
-          medicineName: item.medicineName,
-          quantity: item.quantity,
-          daysRemaining,
-          status,
-          message,
-        };
-      })
-    );
+    const alerts = [];
+    for (const { item, daysRemaining, status } of risky) {
+      let message = `${item.medicineName} at ${item.phc?.name} will run out in ${daysRemaining} days.`;
+      try {
+        message = await generateAlertText(
+          item.phc?.name,
+          item.phc?.country?.name,
+          item.medicineName,
+          daysRemaining
+        );
+      } catch (err) {
+        console.error("Gemini call failed, using fallback message:", err);
+      }
+      alerts.push({
+        id: item._id,
+        phcName: item.phc?.name,
+        countryName: item.phc?.country?.name,
+        medicineName: item.medicineName,
+        quantity: item.quantity,
+        daysRemaining,
+        status,
+        message,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
 
     res.json(alerts);
   } catch (err) {
+    console.error("Alerts route error:", err);
     res.status(500).json({ error: "Failed to compute stock alerts" });
   }
 });
