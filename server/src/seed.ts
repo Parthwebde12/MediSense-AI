@@ -5,7 +5,7 @@ import PHC from "./models/PHC";
 import MedicineStock from "./models/MedicineStock";
 import Attendance from "./models/Attendance";
 
-dotenv.config();
+dotenv.config({path:".env.local"});
 
 const seed = async () => {
   const uri = process.env.MONGO_URI;

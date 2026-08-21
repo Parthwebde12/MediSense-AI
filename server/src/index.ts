@@ -8,7 +8,7 @@ import phcRoutes from "./routes/phc";
 import medicineStockRoutes from "./routes/medicineStock";
 import attendance from "./routes/attendance"
 
-dotenv.config();
+dotenv.config({path:".env.local"});
 connectDB();
 
 const app = express();
