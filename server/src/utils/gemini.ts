@@ -19,3 +19,17 @@ export const generateAlertText = async (
   const result = await model.generateContent(prompt);
   return result.response.text().trim();
 };
+export const generateRedistributionText = async (
+  medicineName: string,
+  fromPhc: string,
+  fromCountry: string,
+  toPhc: string,
+  toCountry: string,
+  amount: number
+): Promise<string> => {
+  const model = getModel();
+  const prompt = `Write a short, actionable one-sentence recommendation (under 30 words) for a hospital admin dashboard. Suggest transferring ${amount} units of ${medicineName} from ${fromPhc} in ${fromCountry} to ${toPhc} in ${toCountry}, which is critically low. Be direct.`;
+
+  const result = await model.generateContent(prompt);
+  return result.response.text().trim();
+};

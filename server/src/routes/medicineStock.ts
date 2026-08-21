@@ -2,8 +2,8 @@ import { Router } from "express";
 import MedicineStock from "../models/MedicineStock";
 import { calculateDepletion } from "../utils/forecast";
 import "../models/Country";
-import { generateAlertText } from "../utils/gemini";
-
+import { findRedistributionMatches } from "../utils/redistribution";
+import { generateAlertText, generateRedistributionText } from "../utils/gemini";
 const router = Router();
 
 router.get("/", async (req, res) => {
@@ -108,6 +108,50 @@ router.get("/alerts", async (req, res) => {
   } catch (err) {
     console.error("Alerts route error:", err);
     res.status(500).json({ error: "Failed to compute stock alerts" });
+  }
+});
+router.get("/redistribution", async (_req, res) => {
+  try {
+    const stock = await MedicineStock.find().populate({
+      path: "phc",
+      populate: { path: "country" },
+    });
+
+    const stockItems = stock.map((item: any) => ({
+      phcId: item.phc?._id?.toString(),
+      phcName: item.phc?.name,
+      countryId: item.phc?.country?._id?.toString(),
+      countryName: item.phc?.country?.name,
+      medicineName: item.medicineName,
+      quantity: item.quantity,
+      dailyConsumptionRate: item.dailyConsumptionRate,
+    }));
+
+    const matches = findRedistributionMatches(stockItems).slice(0, 3);
+
+    const suggestions = [];
+    for (const match of matches) {
+      let message = `Transfer ${match.suggestedTransferAmount} units of ${match.medicineName} from ${match.fromPhcName} (${match.fromCountryName}) to ${match.toPhcName} (${match.toCountryName}).`;
+      try {
+        message = await generateRedistributionText(
+          match.medicineName,
+          match.fromPhcName,
+          match.fromCountryName,
+          match.toPhcName,
+          match.toCountryName,
+          match.suggestedTransferAmount
+        );
+      } catch (err) {
+        console.error("Gemini redistribution call failed, using fallback:", err);
+      }
+      suggestions.push({ ...match, message });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    res.json(suggestions);
+  } catch (err) {
+    console.error("Redistribution route error:", err);
+    res.status(500).json({ error: "Failed to compute redistribution suggestions" });
   }
 });
 
