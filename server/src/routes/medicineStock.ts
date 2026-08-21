@@ -1,5 +1,6 @@
 import { Router } from "express";
 import MedicineStock from "../models/MedicineStock";
+import { calculateDepletion } from "../utils/forecast";
 
 const router = Router();
 
@@ -47,6 +48,45 @@ router.patch("/:id", async (req, res) => {
     res.json(stock);
   } catch (err) {
     res.status(500).json({ error: "Failed to update stock" });
+  }
+});
+
+router.get("/alerts", async (req, res) => {
+  try {
+    const country = req.query.country as string | undefined;
+
+    const stock = await MedicineStock.find()
+      .populate({
+        path: "phc",
+        populate: { path: "country" },
+      });
+
+    const filtered = country
+      ? stock.filter((s: any) => s.phc?.country?._id?.toString() === country)
+      : stock;
+
+    const alerts = filtered
+      .map((item: any) => {
+        const { daysRemaining, status } = calculateDepletion(
+          item.quantity,
+          item.dailyConsumptionRate
+        );
+        return {
+          id: item._id,
+          phcName: item.phc?.name,
+          countryName: item.phc?.country?.name,
+          medicineName: item.medicineName,
+          quantity: item.quantity,
+          daysRemaining,
+          status,
+        };
+      })
+      .filter((a) => a.status !== "healthy")
+      .sort((a, b) => a.daysRemaining - b.daysRemaining);
+
+    res.json(alerts);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to compute stock alerts" });
   }
 });
 
