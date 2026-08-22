@@ -96,6 +96,11 @@ export default function Login() {
         {loading ? "Signing in…" : "Sign in"}
       </button>
     </form>
+    <div className="mt-4 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs text-slate-500">
+  <p className="font-medium text-slate-600 mb-1">Demo credentials</p>
+  <p>Email: <span className="font-mono text-slate-700">demo@smarthealth.com</span></p>
+  <p>Password: <span className="font-mono text-slate-700">demo1234</span></p>
+</div>
   </div>
 )
 }
