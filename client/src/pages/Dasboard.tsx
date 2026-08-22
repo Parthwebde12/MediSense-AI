@@ -2,24 +2,23 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchAlerts, fetchRedistribution, fetchAllPHCs } from "../lib/stockApi";
 
 export default function Dashboard() {
-  const { data: phcs, isLoading: phcsLoading } = useQuery({
+  const { data: phcs, isLoading: phcsLoading, isError: phcsError } = useQuery({
     queryKey: ["phcs"],
     queryFn: fetchAllPHCs,
   });
 
-  const { data: alerts, isLoading: alertsLoading } = useQuery({
+  const { data: alerts, isLoading: alertsLoading, isError: alertsError } = useQuery({
     queryKey: ["alerts"],
     queryFn: fetchAlerts,
   });
 
-  const { data: redistribution, isLoading: redistLoading } = useQuery({
+  const { data: redistribution, isLoading: redistLoading, isError: redistError } = useQuery({
     queryKey: ["redistribution"],
     queryFn: fetchRedistribution,
   });
 
   const countryMap = new Map<string, { name: string; phcCount: number }>();
-  phcs?.forEach((phc:any) => { //error unsolvable
-    
+  phcs?.forEach((phc:any) => {
     const countryName = phc.country?.name;
     if (!countryName) return;
     const existing = countryMap.get(countryName) || { name: countryName, phcCount: 0 };
@@ -33,6 +32,7 @@ export default function Dashboard() {
   });
 
   const isLoading = phcsLoading || alertsLoading || redistLoading;
+  const hasError = phcsError || alertsError || redistError;
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -51,6 +51,11 @@ export default function Dashboard() {
 
         {isLoading && (
           <div className="text-sm text-slate-400 mb-6">Loading live data…</div>
+        )}
+        {hasError && (
+          <div className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2 mb-6">
+            Couldn't load some data from the server. Check that the backend is running and try refreshing.
+          </div>
         )}
 
         <div className="grid grid-cols-3 gap-3 mb-6">
