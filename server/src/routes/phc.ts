@@ -5,8 +5,8 @@ const router = Router();
 
 router.get("/", async (req, res) => {
   try {
-   const country = req.query.country as string | undefined;
-const filter = country ? { country } : {};
+    const country = req.query.country as string | undefined;
+    const filter = country ? { country } : {};
     const phcs = await PHC.find(filter).populate("country");
     res.json(phcs);
   } catch (err) {
@@ -24,6 +24,19 @@ router.post("/", async (req, res) => {
     res.status(201).json(phc);
   } catch (err) {
     res.status(500).json({ error: "Failed to create PHC" });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    const phc = await PHC.findByIdAndDelete(req.params.id);
+    if (!phc) {
+      return res.status(404).json({ error: "PHC not found" });
+    }
+    res.json({ message: "PHC deleted" });
+  } catch (err) {
+    console.error("PHC delete error:", err);
+    res.status(500).json({ error: "Failed to delete PHC" });
   }
 });
 

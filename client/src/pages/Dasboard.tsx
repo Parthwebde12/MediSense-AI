@@ -1,26 +1,31 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchAlerts, fetchRedistribution, fetchAllPHCs, fetchAllStock } from "../lib/stockApi";
 import Navbar from "../components/Navbar";
+import { Building2, AlertTriangle, ArrowLeftRight, Pill } from "lucide-react";
 
 export default function Dashboard() {
   const { data: phcs, isLoading: phcsLoading, isError: phcsError } = useQuery({
     queryKey: ["phcs"],
     queryFn: fetchAllPHCs,
+    refetchInterval: 15000,
   });
 
   const { data: alerts, isLoading: alertsLoading, isError: alertsError } = useQuery({
     queryKey: ["alerts"],
     queryFn: fetchAlerts,
+    refetchInterval: 15000,
   });
 
   const { data: redistribution, isLoading: redistLoading, isError: redistError } = useQuery({
     queryKey: ["redistribution"],
     queryFn: fetchRedistribution,
+    refetchInterval: 15000,
   });
 
   const { data: stock, isLoading: stockLoading } = useQuery({
     queryKey: ["stock"],
     queryFn: fetchAllStock,
+    refetchInterval: 15000,
   });
 
   const countryMap = new Map<string, { name: string; phcCount: number }>();
@@ -44,18 +49,18 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-50">
       <Navbar />
       <div className="max-w-5xl mx-auto p-6">
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <p className="text-sm text-slate-500">
             Regional overview <span className="text-slate-300">·</span> {countryMap.size} countries
           </p>
+          {isLoading && (
+            <span className="flex items-center gap-2 text-xs text-slate-400">
+              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse" />
+              Refreshing…
+            </span>
+          )}
         </div>
 
-        {isLoading && (
-          <div className="text-sm text-slate-400 mb-6 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-pulse"></span>
-            Loading live data…
-          </div>
-        )}
         {hasError && (
           <div className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3 mb-6 border border-red-100">
             Couldn't load some data from the server. Check that the backend is running and try refreshing.
@@ -64,22 +69,25 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <div className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wide">Total PHCs</div>
-            <div className="text-3xl font-semibold text-slate-900">
-              {phcs?.length ?? "—"}
+            <div className="flex items-center gap-2 mb-2">
+              <Building2 size={14} className="text-slate-400" />
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total PHCs</span>
             </div>
+            <div className="text-3xl font-semibold text-slate-900">{phcs?.length ?? "—"}</div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <div className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wide">Low-stock Alerts</div>
-            <div className="text-3xl font-semibold text-red-500">
-              {alerts?.length ?? "—"}
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle size={14} className="text-red-400" />
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Low-stock Alerts</span>
             </div>
+            <div className="text-3xl font-semibold text-red-500">{alerts?.length ?? "—"}</div>
           </div>
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <div className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wide">Redistribution</div>
-            <div className="text-3xl font-semibold text-amber-500">
-              {redistribution?.length ?? "—"}
+            <div className="flex items-center gap-2 mb-2">
+              <ArrowLeftRight size={14} className="text-amber-400" />
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Redistribution</span>
             </div>
+            <div className="text-3xl font-semibold text-amber-500">{redistribution?.length ?? "—"}</div>
           </div>
         </div>
 
@@ -91,11 +99,13 @@ export default function Dashboard() {
                 <div className="text-sm font-semibold text-slate-900 mb-3">{c.name}</div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-500">{c.phcCount} PHCs</span>
-                  <span className={`px-2 py-0.5 rounded-full font-medium ${
-                    (alertsByCountry.get(c.name) || 0) > 0
-                      ? "bg-red-50 text-red-600"
-                      : "bg-green-50 text-green-600"
-                  }`}>
+                  <span
+                    className={`px-2 py-0.5 rounded-full font-medium ${
+                      (alertsByCountry.get(c.name) || 0) > 0
+                        ? "bg-red-50 text-red-600"
+                        : "bg-green-50 text-green-600"
+                    }`}
+                  >
                     {alertsByCountry.get(c.name) || 0} alert
                     {(alertsByCountry.get(c.name) || 0) !== 1 ? "s" : ""}
                   </span>
@@ -118,7 +128,7 @@ export default function Dashboard() {
                       : "bg-amber-50 text-amber-700 border-amber-100"
                   }`}
                 >
-                  <span className="mt-0.5">{a.status === "critical" ? "⚠" : "!"}</span>
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                   <span>{a.message}</span>
                 </div>
               ))
@@ -131,9 +141,7 @@ export default function Dashboard() {
         </div>
 
         <div className="mb-8">
-          <h2 className="text-sm font-semibold text-slate-800 mb-3">
-            Cross-border Redistribution Suggestions
-          </h2>
+          <h2 className="text-sm font-semibold text-slate-800 mb-3">Cross-border Redistribution Suggestions</h2>
           <div className="flex flex-col gap-2">
             {redistribution?.length ? (
               redistribution.map((r, i) => (
@@ -141,7 +149,7 @@ export default function Dashboard() {
                   key={i}
                   className="flex gap-3 items-start rounded-xl px-4 py-3 text-sm bg-blue-50 text-blue-700 border border-blue-100"
                 >
-                  <span className="mt-0.5">⇄</span>
+                  <ArrowLeftRight size={16} className="mt-0.5 shrink-0" />
                   <span>{r.message}</span>
                 </div>
               ))
@@ -154,7 +162,9 @@ export default function Dashboard() {
         </div>
 
         <div>
-          <h2 className="text-sm font-semibold text-slate-800 mb-3">All Stock Entries</h2>
+          <h2 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+            <Pill size={14} className="text-slate-400" /> All Stock Entries
+          </h2>
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -173,9 +183,7 @@ export default function Dashboard() {
                       <td className="px-4 py-3 text-slate-800">{s.medicineName}</td>
                       <td className="px-4 py-3 text-slate-600">{s.phc?.name ?? "—"}</td>
                       <td className="px-4 py-3 text-slate-600">{s.phc?.country?.name ?? "—"}</td>
-                      <td className="px-4 py-3 text-slate-800">
-                        {s.quantity} {s.unit}
-                      </td>
+                      <td className="px-4 py-3 text-slate-800">{s.quantity} {s.unit}</td>
                       <td className="px-4 py-3 text-slate-600">{s.dailyConsumptionRate}/day</td>
                     </tr>
                   ))
