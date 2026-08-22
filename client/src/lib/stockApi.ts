@@ -98,3 +98,31 @@ export const deletePHC = async (id: string) => {
   const res = await api.delete(`/phc/${id}`);
   return res.data;
 };
+export interface AttendanceRecord {
+  _id: string;
+  staffName: string;
+  role: string;
+  date: string;
+  present: boolean;
+  patientFootfall: number;
+  phc?: { _id: string; name: string; country?: { name: string } };
+}
+
+export const fetchAllAttendance = async (): Promise<AttendanceRecord[]> => {
+  const res = await api.get("/attendance");
+  return res.data;
+};
+
+export interface NewAttendancePayload {
+  phc: string;
+  staffName: string;
+  role: string;
+  date?: string;
+  present: boolean;
+  patientFootfall: number;
+}
+
+export const createAttendance = async (payload: NewAttendancePayload) => {
+  const res = await api.post("/attendance", payload);
+  return res.data;
+};

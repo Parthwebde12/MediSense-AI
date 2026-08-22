@@ -29,6 +29,9 @@ export default function Navbar() {
             <a href="/add-phc" className="text-sm text-slate-500 hover:text-slate-900 transition-colors">
               Add PHC
             </a>
+            <a href="/add-attendance" className="text-sm text-slate-500 hover:text-slate-900 transition-colors">
+              Add attendance
+            </a>
           </>
         )}
         {user && (

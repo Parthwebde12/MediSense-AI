@@ -4,7 +4,7 @@ import Dashboard from "./pages/Dasboard"
 import AddStock from "./pages/AddStock"
 import ProtectedRoute from "./components/ProtectedRoutes"
 import AddPHC from "./pages/AddPHC"
-
+import AddAttendance from "./pages/AddAttendance"
 
 function App() {
   return (
@@ -21,19 +21,27 @@ function App() {
       <Route
         path="/add-stock"
         element={
-          <ProtectedRoute requiredRole="regional_admin">
+          <ProtectedRoute>
             <AddStock />
           </ProtectedRoute>
         }
       />
       <Route
-  path="/add-phc"
-  element={
-    <ProtectedRoute requiredRole="regional_admin">
-      <AddPHC />
-    </ProtectedRoute>
-  }
-/>
+        path="/add-phc"
+        element={
+          <ProtectedRoute>
+            <AddPHC />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/add-attendance"
+        element={
+          <ProtectedRoute>
+            <AddAttendance />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/" element={<Login />} />
     </Routes>
   )

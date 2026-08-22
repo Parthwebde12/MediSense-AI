@@ -33,3 +33,15 @@ export const generateRedistributionText = async (
   const result = await model.generateContent(prompt);
   return result.response.text().trim();
 };
+export const generateRiskExplanation = async (
+  phcName: string,
+  countryName: string,
+  score: number,
+  minDaysRemaining: number,
+  attendanceRate: number
+): Promise<string> => {
+  const model = getModel();
+  const prompt = `Write one short sentence (under 25 words) explaining why ${phcName} in ${countryName} has a risk score of ${score}/100. Lowest stock has ${minDaysRemaining} days remaining. Staff attendance is ${Math.round(attendanceRate * 100)}%. Be direct and specific.`;
+  const result = await model.generateContent(prompt);
+  return result.response.text().trim();
+};

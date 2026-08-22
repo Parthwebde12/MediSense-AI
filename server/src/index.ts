@@ -8,6 +8,7 @@ import medicineStockRoutes from "./routes/medicineStock";
 import attendance from "./routes/attendance";
 import { startConsumptionSimulation } from "./utils/simulateConsumption";
 import countryRoutes from "./routes/country";
+import riskRoutes from "./routes/risk";
 
 dotenv.config({ path: ".env.local" });
 connectDB();
@@ -27,6 +28,7 @@ app.use("/api/phc", phcRoutes);
 app.use("/api/stock", medicineStockRoutes);
 app.use("/api/attendance", attendance);
 app.use("/api/country", countryRoutes);
+app.use("/api/risk", riskRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
