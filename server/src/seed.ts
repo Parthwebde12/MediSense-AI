@@ -26,21 +26,19 @@ const seed = async () => {
  
 const countries = await Country.create([
   { name: "India", code: "IN" },
-  { name: "Brazil", code: "BR" },
-  { name: "South Africa", code: "ZA" },
 ]);
 const india = countries[0]!;
-const brazil = countries[1]!;
-const southAfrica = countries[2]!;
 
  
   const phcs = await PHC.create([
-    { name: "PHC Nagpur East", country: india._id, district: "Nagpur", location: { lat: 21.15, lng: 79.09 } },
-    { name: "PHC Pune North", country: india._id, district: "Pune", location: { lat: 18.52, lng: 73.85 } },
-    { name: "PHC Recife Central", country: brazil._id, district: "Recife", location: { lat: -8.05, lng: -34.9 } },
-    { name: "PHC Bahia Rural", country: brazil._id, district: "Bahia", location: { lat: -12.97, lng: -38.5 } },
-    { name: "PHC Cape Town South", country: southAfrica._id, district: "Cape Town", location: { lat: -33.92, lng: 18.42 } },
-    { name: "PHC Durban East", country: southAfrica._id, district: "Durban", location: { lat: -29.85, lng: 31.02 } },
+    { name: "PHC Nagpur East", country: india._id, state: "Maharashtra", district: "Nagpur", city: "Nagpur", location: { lat: 21.15, lng: 79.09 } },
+    { name: "PHC Pune North", country: india._id, state: "Maharashtra", district: "Pune", city: "Pune", location: { lat: 18.52, lng: 73.85 } },
+    { name: "PHC Bengaluru Urban Central", country: india._id, state: "Karnataka", district: "Bangalore Urban", city: "Bengaluru", location: { lat: 12.97, lng: 77.59 } },
+    { name: "PHC Mysuru Rural", country: india._id, state: "Karnataka", district: "Mysore", city: "Mysuru", location: { lat: 12.3, lng: 76.64 } },
+    { name: "PHC Chennai South", country: india._id, state: "Tamil Nadu", district: "Chennai", city: "Chennai", location: { lat: 13.06, lng: 80.25 } },
+    { name: "PHC Madurai East", country: india._id, state: "Tamil Nadu", district: "Madurai", city: "Madurai", location: { lat: 9.93, lng: 78.12 } },
+    { name: "PHC Patna Central", country: india._id, state: "Bihar", district: "Patna", city: "Patna", location: { lat: 25.59, lng: 85.14 } },
+    { name: "PHC Jaipur North", country: india._id, state: "Rajasthan", district: "Jaipur", city: "Jaipur", location: { lat: 26.91, lng: 75.79 } },
   ]);
 
   const medicines = ["Paracetamol", "Amoxicillin", "ORS Sachets", "Insulin", "Iron Tablets"];

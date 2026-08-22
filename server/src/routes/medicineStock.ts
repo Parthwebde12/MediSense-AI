@@ -4,9 +4,10 @@ import { calculateDepletion } from "../utils/forecast";
 import "../models/Country";
 import { findRedistributionMatches } from "../utils/redistribution";
 import { generateAlertText, generateRedistributionText } from "../utils/gemini";
+import { requireAuth } from "../middleware/auth";
 const router = Router();
 
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const phc = req.query.phc as string | undefined;
     const filter = phc ? { phc } : {};
@@ -17,7 +18,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   try {
     const { phc, medicineName, quantity, unit, dailyConsumptionRate } = req.body;
     if (!phc || !medicineName || quantity === undefined || !unit) {
@@ -36,7 +37,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", requireAuth, async (req, res) => {
   try {
     const { quantity } = req.body;
     const stock = await MedicineStock.findByIdAndUpdate(
@@ -53,17 +54,14 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-router.get("/alerts", async (req, res) => {
+router.get("/alerts", requireAuth, async (req, res) => {
   try {
-    const country = req.query.country as string | undefined;
+    const state = req.query.state as string | undefined;
 
-    const stock = await MedicineStock.find().populate({
-      path: "phc",
-      populate: { path: "country" },
-    });
+    const stock = await MedicineStock.find().populate("phc");
 
-    const filtered = country
-      ? stock.filter((s: any) => s.phc?.country?._id?.toString() === country)
+    const filtered = state
+      ? stock.filter((s: any) => s.phc?.state === state)
       : stock;
 
     const risky = filtered
@@ -84,7 +82,7 @@ router.get("/alerts", async (req, res) => {
       try {
         message = await generateAlertText(
           item.phc?.name,
-          item.phc?.country?.name,
+          item.phc?.state,
           item.medicineName,
           daysRemaining
         );
@@ -94,7 +92,7 @@ router.get("/alerts", async (req, res) => {
       alerts.push({
         id: item._id,
         phcName: item.phc?.name,
-        countryName: item.phc?.country?.name,
+        stateName: item.phc?.state,
         medicineName: item.medicineName,
         quantity: item.quantity,
         daysRemaining,
@@ -110,18 +108,14 @@ router.get("/alerts", async (req, res) => {
     res.status(500).json({ error: "Failed to compute stock alerts" });
   }
 });
-router.get("/redistribution", async (_req, res) => {
+router.get("/redistribution", requireAuth, async (_req, res) => {
   try {
-    const stock = await MedicineStock.find().populate({
-      path: "phc",
-      populate: { path: "country" },
-    });
+    const stock = await MedicineStock.find().populate("phc");
 
     const stockItems = stock.map((item: any) => ({
       phcId: item.phc?._id?.toString(),
       phcName: item.phc?.name,
-      countryId: item.phc?.country?._id?.toString(),
-      countryName: item.phc?.country?.name,
+      state: item.phc?.state,
       medicineName: item.medicineName,
       quantity: item.quantity,
       dailyConsumptionRate: item.dailyConsumptionRate,
@@ -131,14 +125,14 @@ router.get("/redistribution", async (_req, res) => {
 
     const suggestions = [];
     for (const match of matches) {
-      let message = `Transfer ${match.suggestedTransferAmount} units of ${match.medicineName} from ${match.fromPhcName} (${match.fromCountryName}) to ${match.toPhcName} (${match.toCountryName}).`;
+      let message = `Transfer ${match.suggestedTransferAmount} units of ${match.medicineName} from ${match.fromPhcName} (${match.fromState}) to ${match.toPhcName} (${match.toState}).`;
       try {
         message = await generateRedistributionText(
           match.medicineName,
           match.fromPhcName,
-          match.fromCountryName,
+          match.fromState,
           match.toPhcName,
-          match.toCountryName,
+          match.toState,
           match.suggestedTransferAmount
         );
       } catch (err) {

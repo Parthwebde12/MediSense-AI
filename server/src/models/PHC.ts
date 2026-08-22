@@ -3,7 +3,9 @@ import mongoose, { Schema, Document, Types } from "mongoose";
 export interface IPHC extends Document {
   name: string;
   country: Types.ObjectId;
+  state: string;
   district: string;
+  city: string;
   location?: {
     lat: number;
     lng: number;
@@ -13,7 +15,9 @@ export interface IPHC extends Document {
 const PHCSchema = new Schema<IPHC>({
   name: { type: String, required: true },
   country: { type: Schema.Types.ObjectId, ref: "Country", required: true },
+  state: { type: String, required: true },
   district: { type: String, required: true },
+  city: { type: String, required: true },
   location: {
     lat: { type: Number },
     lng: { type: Number },

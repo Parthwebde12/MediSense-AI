@@ -1,10 +1,10 @@
 export interface RedistributionSuggestion {
   medicineName: string;
   fromPhcName: string;
-  fromCountryName: string;
+  fromState: string;
   fromQuantity: number;
   toPhcName: string;
-  toCountryName: string;
+  toState: string;
   toQuantity: number;
   suggestedTransferAmount: number;
 }
@@ -12,8 +12,7 @@ export interface RedistributionSuggestion {
 interface StockItem {
   phcId: string;
   phcName: string;
-  countryId: string;
-  countryName: string;
+  state: string;
   medicineName: string;
   quantity: number;
   dailyConsumptionRate: number;
@@ -43,7 +42,7 @@ export const findRedistributionMatches = (
 
     for (const lowItem of low) {
       const match = surplus.find(
-        (s) => s.countryId !== lowItem.countryId && s.phcId !== lowItem.phcId
+        (s) => s.state !== lowItem.state && s.phcId !== lowItem.phcId
       );
       if (match) {
         const transferAmount = Math.min(
@@ -53,10 +52,10 @@ export const findRedistributionMatches = (
         suggestions.push({
           medicineName,
           fromPhcName: match.phcName,
-          fromCountryName: match.countryName,
+          fromState: match.state,
           fromQuantity: match.quantity,
           toPhcName: lowItem.phcName,
-          toCountryName: lowItem.countryName,
+          toState: lowItem.state,
           toQuantity: lowItem.quantity,
           suggestedTransferAmount: transferAmount,
         });

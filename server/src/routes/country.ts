@@ -1,9 +1,10 @@
 import { Router } from "express";
 import Country from "../models/Country";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 
-router.get("/", async (_req, res) => {
+router.get("/", requireAuth, async (_req, res) => {
   try {
     const countries = await Country.find();
     res.json(countries);
@@ -13,11 +14,14 @@ router.get("/", async (_req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, requireRole("regional_admin"), async (req, res) => {
   try {
     const { name, code } = req.body;
     if (!name || !code) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+    if (code.toUpperCase() !== "IN" || name.trim().toLowerCase() !== "india") {
+      return res.status(400).json({ error: "This deployment only supports India" });
     }
     const country = await Country.create({ name, code });
     res.status(201).json(country);
@@ -27,7 +31,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAuth, requireRole("regional_admin"), async (req, res) => {
   try {
     const country = await Country.findByIdAndDelete(req.params.id);
     if (!country) {
