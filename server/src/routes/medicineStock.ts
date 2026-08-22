@@ -4,7 +4,7 @@ import { calculateDepletion } from "../utils/forecast";
 import "../models/Country";
 import { findRedistributionMatches } from "../utils/redistribution";
 import { generateAlertText, generateRedistributionText } from "../utils/gemini";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 const router = Router();
 
 router.get("/", requireAuth, async (req, res) => {
@@ -18,7 +18,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requireRole("regional_admin"), async (req, res) => {
   try {
     const { phc, medicineName, quantity, unit, dailyConsumptionRate } = req.body;
     if (!phc || !medicineName || quantity === undefined || !unit) {
@@ -37,7 +37,7 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-router.patch("/:id", requireAuth, async (req, res) => {
+router.patch("/:id", requireAuth, requireRole("regional_admin"), async (req, res) => {
   try {
     const { quantity } = req.body;
     const stock = await MedicineStock.findByIdAndUpdate(

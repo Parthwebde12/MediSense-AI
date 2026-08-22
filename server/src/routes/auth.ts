@@ -25,7 +25,7 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
@@ -33,6 +33,9 @@ router.post("/login", async (req, res) => {
     const valid = await comparePassword(password, user.passwordHash);
     if (!valid) {
       return res.status(401).json({ error: "Invalid credentials" });
+    }
+    if (role && user.role !== role) {
+      return res.status(401).json({ error: "Selected role does not match this account" });
     }
     const token = generateToken({ id: user.id, role: user.role });
     res.json({ token, user: { id: user.id, name: user.name, role: user.role } });

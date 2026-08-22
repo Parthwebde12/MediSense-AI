@@ -1,6 +1,6 @@
 import { Router } from "express";
 import Attendance from "../models/Attendance";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 
@@ -15,7 +15,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requireRole("regional_admin"), async (req, res) => {
   try {
     const { phc, staffName, role, date, present, patientFootfall } = req.body;
     if (!phc || !staffName || !role) {

@@ -21,7 +21,7 @@ function App() {
       <Route
         path="/add-stock"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="regional_admin">
             <AddStock />
           </ProtectedRoute>
         }
@@ -29,7 +29,7 @@ function App() {
       <Route
   path="/add-phc"
   element={
-    <ProtectedRoute>
+    <ProtectedRoute requiredRole="regional_admin">
       <AddPHC />
     </ProtectedRoute>
   }

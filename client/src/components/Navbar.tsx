@@ -21,12 +21,16 @@ export default function Navbar() {
         </span>
       </div>
       <div className="flex items-center gap-4">
-        <a href="/add-stock" className="text-sm text-slate-500 hover:text-slate-900 transition-colors">
-          Add stock
-        </a>
-        <a href="/add-phc" className="text-sm text-slate-500 hover:text-slate-900 transition-colors">
-          Add PHC
-        </a>
+        {user?.role === "regional_admin" && (
+          <>
+            <a href="/add-stock" className="text-sm text-slate-500 hover:text-slate-900 transition-colors">
+              Add stock
+            </a>
+            <a href="/add-phc" className="text-sm text-slate-500 hover:text-slate-900 transition-colors">
+              Add PHC
+            </a>
+          </>
+        )}
         {user && (
           <span className="text-sm text-slate-500">
             {user.name} <span className="text-slate-300">·</span>{" "}

@@ -6,6 +6,7 @@ import { useAuth } from "../context/Authcontext";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"regional_admin" | "phc_staff">("phc_staff");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -16,11 +17,11 @@ export default function Login() {
   setError("");
   setLoading(true);
   try {
-    const res = await api.post("/auth/login", { email, password });
+    const res = await api.post("/auth/login", { email, password, role });
     login(res.data.token, res.data.user);
     navigate("/dashboard");
-  } catch {
-    setError("Invalid email or password");
+  } catch (err: any) {
+    setError(err?.response?.data?.error ?? "Invalid email or password");
   } finally {
     setLoading(false);
   }
@@ -46,6 +47,31 @@ export default function Login() {
       {error && (
         <p className="text-red-600 text-sm mb-4 bg-red-50 rounded-lg px-3 py-2">{error}</p>
       )}
+      <label className="block text-xs font-medium text-slate-600 mb-1.5">Signing in as</label>
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => setRole("phc_staff")}
+          className={`py-2 rounded-lg text-sm font-medium border transition-colors ${
+            role === "phc_staff"
+              ? "bg-slate-900 text-white border-slate-900"
+              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+          }`}
+        >
+          Staff
+        </button>
+        <button
+          type="button"
+          onClick={() => setRole("regional_admin")}
+          className={`py-2 rounded-lg text-sm font-medium border transition-colors ${
+            role === "regional_admin"
+              ? "bg-slate-900 text-white border-slate-900"
+              : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+          }`}
+        >
+          Admin
+        </button>
+      </div>
       <label className="block text-xs font-medium text-slate-600 mb-1.5">Email</label>
       <input
         type="email"

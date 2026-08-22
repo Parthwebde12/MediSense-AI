@@ -3,7 +3,7 @@ import api from "./api";
 export interface Alert {
   id: string;
   phcName: string;
-  countryName: string;
+  stateName: string;
   medicineName: string;
   quantity: number;
   daysRemaining: number;
@@ -14,9 +14,9 @@ export interface Alert {
 export interface RedistributionSuggestion {
   medicineName: string;
   fromPhcName: string;
-  fromCountryName: string;
+  fromState: string;
   toPhcName: string;
-  toCountryName: string;
+  toState: string;
   suggestedTransferAmount: number;
   message: string;
 }
@@ -37,7 +37,7 @@ export interface StockItem {
   quantity: number;
   unit: string;
   dailyConsumptionRate: number;
-  phc?: { _id: string; name: string; country?: { name: string } };
+  phc?: { _id: string; name: string; state?: string; district?: string; city?: string };
 }
 
 export const fetchAllStock = async (): Promise<StockItem[]> => {
@@ -64,7 +64,9 @@ export const createStock = async (payload: NewStockPayload) => {
 export interface NewPHCPayload {
   name: string;
   country: string;
+  state: string;
   district: string;
+  city: string;
 }
 
 export const createPHC = async (payload: NewPHCPayload) => {
