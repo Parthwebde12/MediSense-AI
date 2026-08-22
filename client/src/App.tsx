@@ -1,7 +1,10 @@
 import { Routes, Route } from "react-router-dom"
 import Login from "./pages/Login"
 import Dashboard from "./pages/Dasboard"
+import AddStock from "./pages/AddStock"
 import ProtectedRoute from "./components/ProtectedRoutes"
+import AddPHC from "./pages/AddPHC"
+
 
 function App() {
   return (
@@ -15,6 +18,22 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/add-stock"
+        element={
+          <ProtectedRoute>
+            <AddStock />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+  path="/add-phc"
+  element={
+    <ProtectedRoute>
+      <AddPHC />
+    </ProtectedRoute>
+  }
+/>
       <Route path="/" element={<Login />} />
     </Routes>
   )

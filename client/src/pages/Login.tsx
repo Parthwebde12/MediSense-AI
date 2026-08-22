@@ -27,40 +27,49 @@ export default function Login() {
 };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm"
-      >
-        <h1 className="text-xl font-semibold text-slate-800 mb-6">
+  <div className="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm border border-slate-100"
+    >
+      <div className="mb-6">
+        <div className="w-10 h-10 bg-slate-900 rounded-lg mb-4 flex items-center justify-center text-white text-sm font-semibold">
+          SH
+        </div>
+        <h1 className="text-xl font-semibold text-slate-900">
           Sign in
         </h1>
-        {error && (
-          <p className="text-red-500 text-sm mb-4">{error}</p>
-        )}
-        <label className="block text-sm text-slate-600 mb-1">Email</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-slate-300 rounded px-3 py-2 mb-4 text-sm"
-          required
-        />
-        <label className="block text-sm text-slate-600 mb-1">Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full border border-slate-300 rounded px-3 py-2 mb-6 text-sm"
-          required/>
-        <button
-  type="submit"
-  disabled={loading}
-  className="w-full bg-slate-800 text-white py-2 rounded text-sm font-medium hover:bg-slate-700 disabled:opacity-50"
->
-  {loading ? "Signing in…" : "Sign in"}
-</button>
-      </form>
-    </div>
-  );
+        <p className="text-sm text-slate-500 mt-1">
+          Smart Health & Supply Chain Resilience
+        </p>
+      </div>
+      {error && (
+        <p className="text-red-600 text-sm mb-4 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+      )}
+      <label className="block text-xs font-medium text-slate-600 mb-1.5">Email</label>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="w-full border border-slate-200 rounded-lg px-3 py-2.5 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
+        required
+      />
+      <label className="block text-xs font-medium text-slate-600 mb-1.5">Password</label>
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="w-full border border-slate-200 rounded-lg px-3 py-2.5 mb-6 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
+        required
+      />
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-slate-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-50"
+      >
+        {loading ? "Signing in…" : "Sign in"}
+      </button>
+    </form>
+  </div>
+)
 }
