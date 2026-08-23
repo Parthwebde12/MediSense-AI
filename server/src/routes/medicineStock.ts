@@ -5,7 +5,11 @@ import "../models/Country";
 import { findRedistributionMatches } from "../utils/redistribution";
 import { generateAlertText, generateRedistributionText } from "../utils/gemini";
 import { requireAuth, requireRole } from "../middleware/auth";
+
 const router = Router();
+
+const alertMessageCache = new Map<string, { daysRemaining: number; message: string }>();
+const redistributionMessageCache = new Map<string, string>();
 
 router.get("/", requireAuth, async (req, res) => {
   try {
@@ -78,17 +82,27 @@ router.get("/alerts", requireAuth, async (req, res) => {
 
     const alerts = [];
     for (const { item, daysRemaining, status } of risky) {
-      let message = `${item.medicineName} at ${item.phc?.name} will run out in ${daysRemaining} days.`;
-      try {
-        message = await generateAlertText(
-          item.phc?.name,
-          item.phc?.state,
-          item.medicineName,
-          daysRemaining
-        );
-      } catch (err) {
-        console.error("Gemini call failed, using fallback message:", err);
+      const cacheKey = item._id.toString();
+      const cached = alertMessageCache.get(cacheKey);
+
+      let message: string;
+      if (cached && cached.daysRemaining === daysRemaining) {
+        message = cached.message;
+      } else {
+        message = `${item.medicineName} at ${item.phc?.name} will run out in ${daysRemaining} days.`;
+        try {
+          message = await generateAlertText(
+            item.phc?.name,
+            item.phc?.state,
+            item.medicineName,
+            daysRemaining
+          );
+          alertMessageCache.set(cacheKey, { daysRemaining, message });
+        } catch (err) {
+          console.error("Gemini call failed, using fallback message:", err);
+        }
       }
+
       alerts.push({
         id: item._id,
         phcName: item.phc?.name,
@@ -99,7 +113,6 @@ router.get("/alerts", requireAuth, async (req, res) => {
         status,
         message,
       });
-      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     res.json(alerts);
@@ -108,6 +121,7 @@ router.get("/alerts", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Failed to compute stock alerts" });
   }
 });
+
 router.get("/redistribution", requireAuth, async (_req, res) => {
   try {
     const stock = await MedicineStock.find().populate("phc");
@@ -125,21 +139,30 @@ router.get("/redistribution", requireAuth, async (_req, res) => {
 
     const suggestions = [];
     for (const match of matches) {
-      let message = `Transfer ${match.suggestedTransferAmount} units of ${match.medicineName} from ${match.fromPhcName} (${match.fromState}) to ${match.toPhcName} (${match.toState}).`;
-      try {
-        message = await generateRedistributionText(
-          match.medicineName,
-          match.fromPhcName,
-          match.fromState,
-          match.toPhcName,
-          match.toState,
-          match.suggestedTransferAmount
-        );
-      } catch (err) {
-        console.error("Gemini redistribution call failed, using fallback:", err);
+      const cacheKey = `${match.fromPhcName}-${match.toPhcName}-${match.medicineName}-${match.suggestedTransferAmount}`;
+      const cached = redistributionMessageCache.get(cacheKey);
+
+      let message: string;
+      if (cached) {
+        message = cached;
+      } else {
+        message = `Transfer ${match.suggestedTransferAmount} units of ${match.medicineName} from ${match.fromPhcName} (${match.fromState}) to ${match.toPhcName} (${match.toState}).`;
+        try {
+          message = await generateRedistributionText(
+            match.medicineName,
+            match.fromPhcName,
+            match.fromState,
+            match.toPhcName,
+            match.toState,
+            match.suggestedTransferAmount
+          );
+          redistributionMessageCache.set(cacheKey, message);
+        } catch (err) {
+          console.error("Gemini redistribution call failed, using fallback:", err);
+        }
       }
+
       suggestions.push({ ...match, message });
-      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     res.json(suggestions);
