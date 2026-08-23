@@ -16,8 +16,12 @@ connectDB();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://smart-health-brics.vercel.app",
+  ],
+}));app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "smart-health-brics-server" });
