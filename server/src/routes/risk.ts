@@ -35,7 +35,7 @@ router.get("/", async (_req, res) => {
       let score = 50;
       let level: "critical" | "elevated" | "stable" = "elevated";
       try {
-        const pyRes = await axios.post("http://localhost:8001/risk-score", {
+       const pyRes = await axios.post(`${process.env.PYTHON_SERVICE_URL || "http://localhost:8001"}/risk-score`, {
           minDaysRemaining: minDaysRemaining === 999 ? 30 : minDaysRemaining,
           attendanceRate,
         });
