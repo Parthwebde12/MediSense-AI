@@ -3,8 +3,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const getModel = () => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not set in .env");
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
+ const genAI = new GoogleGenerativeAI(apiKey);
+return genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
 };
 
 export const generateAlertText = async (
