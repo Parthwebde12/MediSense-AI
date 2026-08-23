@@ -1,11 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  fetchAlerts,
-  fetchRedistribution,
-  fetchAllPHCs,
-  fetchAllStock,
-  fetchAllAttendance,
-} from "../lib/stockApi";
+import {fetchAlerts, fetchRedistribution, fetchAllPHCs,fetchAllStock, fetchAllAttendance} from "../lib/stockApi";
 import Navbar from "../components/Navbar";
 import { Building2, AlertTriangle, ArrowLeftRight, Pill, Globe2, Users } from "lucide-react";
 
@@ -40,18 +34,18 @@ export default function Dashboard() {
     refetchInterval: 15000,
   });
 
-  const countryMap = new Map<string, { name: string; phcCount: number }>();
-  phcs?.forEach((phc:any) => {
-    const countryName = phc.country?.name;
-    if (!countryName) return;
-    const existing = countryMap.get(countryName) || { name: countryName, phcCount: 0 };
+  const stateMap = new Map<string, { name: string; phcCount: number }>();
+  phcs?.forEach((phc) => {
+    const stateName = phc.state;
+    if (!stateName) return;
+    const existing = stateMap.get(stateName) || { name: stateName, phcCount: 0 };
     existing.phcCount += 1;
-    countryMap.set(countryName, existing);
+    stateMap.set(stateName, existing);
   });
 
-  const alertsByCountry = new Map<string, number>();
+  const alertsByState = new Map<string, number>();
   alerts?.forEach((a) => {
-    alertsByCountry.set(a.countryName, (alertsByCountry.get(a.countryName) || 0) + 1);
+    alertsByState.set(a.stateName, (alertsByState.get(a.stateName) || 0) + 1);
   });
 
   const isLoading = phcsLoading || alertsLoading || redistLoading || stockLoading;
@@ -69,7 +63,7 @@ export default function Dashboard() {
               Regional Overview
             </h1>
             <p className="text-sm text-slate-500 mt-0.5">
-              Live across {countryMap.size} countries
+              Live across {stateMap.size} states
             </p>
           </div>
           {isLoading && (
@@ -130,24 +124,24 @@ export default function Dashboard() {
         </div>
 
         <div className="mb-8">
-          <h2 className="text-sm font-semibold text-slate-800 mb-3">Countries</h2>
+          <h2 className="text-sm font-semibold text-slate-800 mb-3">States</h2>
           <div className="grid grid-cols-3 gap-4">
-            {Array.from(countryMap.values()).map((c) => {
-              const alertCount = alertsByCountry.get(c.name) || 0;
+            {Array.from(stateMap.values()).map((s) => {
+              const alertCount = alertsByState.get(s.name) || 0;
               const healthy = alertCount === 0;
               return (
                 <div
-                  key={c.name}
+                  key={s.name}
                   className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold text-slate-900">{c.name}</span>
+                    <span className="text-sm font-semibold text-slate-900">{s.name}</span>
                     <span
                       className={`w-2 h-2 rounded-full ${healthy ? "bg-emerald-400" : "bg-red-400"}`}
                     />
                   </div>
                   <div className="flex justify-between items-center text-xs mb-3">
-                    <span className="text-slate-500">{c.phcCount} PHCs</span>
+                    <span className="text-slate-500">{s.phcCount} PHCs</span>
                     <span
                       className={`px-2 py-0.5 rounded-full font-medium ${
                         healthy ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
@@ -226,7 +220,7 @@ export default function Dashboard() {
                 <tr className="border-b border-slate-100 text-left text-xs text-slate-500 uppercase tracking-wide bg-slate-50/50">
                   <th className="px-4 py-3">Medicine</th>
                   <th className="px-4 py-3">PHC</th>
-                  <th className="px-4 py-3">Country</th>
+                  <th className="px-4 py-3">State</th>
                   <th className="px-4 py-3">Quantity</th>
                   <th className="px-4 py-3">Daily Use</th>
                 </tr>
@@ -237,7 +231,7 @@ export default function Dashboard() {
                     <tr key={s._id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
                       <td className="px-4 py-3 text-slate-800 font-medium">{s.medicineName}</td>
                       <td className="px-4 py-3 text-slate-600">{s.phc?.name ?? "—"}</td>
-                      <td className="px-4 py-3 text-slate-600">{s.phc?.country?.name ?? "—"}</td>
+                      <td className="px-4 py-3 text-slate-600">{s.phc?.state ?? "—"}</td>
                       <td className="px-4 py-3 text-slate-800">{s.quantity} {s.unit}</td>
                       <td className="px-4 py-3 text-slate-600">{s.dailyConsumptionRate}/day</td>
                     </tr>

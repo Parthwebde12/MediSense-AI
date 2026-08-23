@@ -31,13 +31,21 @@ export const fetchRedistribution = async (): Promise<RedistributionSuggestion[]>
   return res.data;
 };
 
+export interface PHC {
+  _id: string;
+  name: string;
+  state?: string;
+  district?: string;
+  city?: string;
+}
+
 export interface StockItem {
   _id: string;
   medicineName: string;
   quantity: number;
   unit: string;
   dailyConsumptionRate: number;
-  phc?: { _id: string; name: string; state?: string; district?: string; city?: string };
+  phc?: PHC;
 }
 
 export const fetchAllStock = async (): Promise<StockItem[]> => {
@@ -45,10 +53,11 @@ export const fetchAllStock = async (): Promise<StockItem[]> => {
   return res.data;
 };
 
-export const fetchAllPHCs = async () => {
+export const fetchAllPHCs = async (): Promise<PHC[]> => {
   const res = await api.get("/phc");
   return res.data;
 };
+
 export interface NewStockPayload {
   phc: string;
   medicineName: string;
@@ -61,6 +70,7 @@ export const createStock = async (payload: NewStockPayload) => {
   const res = await api.post("/stock", payload);
   return res.data;
 };
+
 export interface NewPHCPayload {
   name: string;
   country: string;
@@ -84,6 +94,7 @@ export const fetchAllCountries = async (): Promise<Country[]> => {
   const res = await api.get("/country");
   return res.data;
 };
+
 export const deleteCountry = async (id: string) => {
   const res = await api.delete(`/country/${id}`);
   return res.data;
@@ -98,6 +109,7 @@ export const deletePHC = async (id: string) => {
   const res = await api.delete(`/phc/${id}`);
   return res.data;
 };
+
 export interface AttendanceRecord {
   _id: string;
   staffName: string;
@@ -105,7 +117,7 @@ export interface AttendanceRecord {
   date: string;
   present: boolean;
   patientFootfall: number;
-  phc?: { _id: string; name: string; country?: { name: string } };
+  phc?: PHC;
 }
 
 export const fetchAllAttendance = async (): Promise<AttendanceRecord[]> => {
