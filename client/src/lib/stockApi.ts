@@ -125,6 +125,20 @@ export const fetchAllAttendance = async (): Promise<AttendanceRecord[]> => {
   return res.data;
 };
 
+export interface RiskScore {
+  phcId: string;
+  phcName: string;
+  countryName: string;
+  score: number;
+  level: "critical" | "elevated" | "stable";
+  explanation: string;
+}
+
+export const fetchRiskScores = async (): Promise<RiskScore[]> => {
+  const res = await api.get("/risk");
+  return res.data;
+};
+
 export interface NewAttendancePayload {
   phc: string;
   staffName: string;

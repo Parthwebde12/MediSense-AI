@@ -11,10 +11,10 @@ const router = Router();
 
 router.get("/", async (_req, res) => {
   try {
-    const phcs = await PHC.find().populate("country");
+        const phcs = await PHC.find().populate("country");
     const results = [];
 
-    for (const phc of phcs.slice(0, 6)) {
+    for (const phc of phcs.filter((p: any) => p.country).slice(0, 6)) {
       const stock = await MedicineStock.find({ phc: phc._id });
       const attendanceRecords = await Attendance.find({ phc: phc._id })
         .sort({ date: -1 })

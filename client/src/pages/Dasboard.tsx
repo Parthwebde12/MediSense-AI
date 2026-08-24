@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import {fetchAlerts, fetchRedistribution, fetchAllPHCs,fetchAllStock, fetchAllAttendance} from "../lib/stockApi";
+import {fetchAlerts, fetchRedistribution, fetchAllPHCs,fetchAllStock, fetchAllAttendance, fetchRiskScores} from "../lib/stockApi";
 import Navbar from "../components/Navbar";
-import { Building2, AlertTriangle, ArrowLeftRight, Pill, Globe2, Users } from "lucide-react";
+import { Building2, AlertTriangle, ArrowLeftRight, Pill, Globe2, Users, Gauge } from "lucide-react";
 
 export default function Dashboard() {
   const { data: phcs, isLoading: phcsLoading, isError: phcsError } = useQuery({
@@ -31,6 +31,12 @@ export default function Dashboard() {
   const { data: attendance } = useQuery({
     queryKey: ["attendance"],
     queryFn: fetchAllAttendance,
+    refetchInterval: 15000,
+  });
+
+  const { data: riskScores, isLoading: riskLoading } = useQuery({
+    queryKey: ["risk"],
+    queryFn: fetchRiskScores,
     refetchInterval: 15000,
   });
 
@@ -207,6 +213,63 @@ export default function Dashboard() {
                 </p>
               )}
             </div>
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+            <Gauge size={14} className="text-slate-400" /> PHC Risk Scores
+          </h2>
+          <div className="grid grid-cols-1 gap-3">
+            {riskLoading ? (
+              <p className="text-sm text-slate-400 bg-white rounded-xl px-4 py-3 border border-slate-100">
+                Calculating risk scores…
+              </p>
+            ) : riskScores?.length ? (
+              riskScores.map((r) => {
+                const levelStyles =
+                  r.level === "critical"
+                    ? "bg-red-50 text-red-700 border-red-100"
+                    : r.level === "elevated"
+                    ? "bg-amber-50 text-amber-700 border-amber-100"
+                    : "bg-emerald-50 text-emerald-700 border-emerald-100";
+                const barColor =
+                  r.level === "critical"
+                    ? "bg-red-400"
+                    : r.level === "elevated"
+                    ? "bg-amber-400"
+                    : "bg-emerald-400";
+                return (
+                  <div
+                    key={r.phcId}
+                    className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-900">{r.phcName}</span>
+                        <span className="text-xs text-slate-400">{r.countryName}</span>
+                      </div>
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full border ${levelStyles}`}
+                      >
+                        {r.level} · {r.score}/100
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2">
+                      <div
+                        className={`h-full ${barColor}`}
+                        style={{ width: `${r.score}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500">{r.explanation}</p>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-sm text-slate-400 bg-white rounded-xl px-4 py-3 border border-slate-100">
+                No risk scores available yet.
+              </p>
+            )}
           </div>
         </div>
 

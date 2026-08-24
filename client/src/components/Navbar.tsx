@@ -17,7 +17,7 @@ export default function Navbar() {
           SH
         </div>
         <span className="text-sm font-semibold text-slate-900">
-          Smart Health & Supply Chain Resilience
+          MediSense AI
         </span>
       </div>
       <div className="flex items-center gap-4">

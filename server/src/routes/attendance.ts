@@ -8,8 +8,9 @@ router.get("/", requireAuth, async (req, res) => {
   try {
     const phc = req.query.phc as string | undefined;
     const filter = phc ? { phc } : {};
-    const records = await Attendance.find(filter).populate("phc").sort({ date: -1 });
-    res.json(records);
+        const records = await Attendance.find(filter).populate("phc").sort({ date: -1 });
+    const valid = records.filter((r: any) => r.phc);
+    res.json(valid);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch attendance" });
   }
