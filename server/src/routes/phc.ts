@@ -1,6 +1,8 @@
 import { Router } from "express";
 import PHC from "../models/PHC";
 import { requireAuth, requireRole } from "../middleware/auth";
+import MedicineStock from "../models/MedicineStock";
+import Attendance from "../models/Attendance";
 
 const router = Router();
 
@@ -34,7 +36,15 @@ router.delete("/:id", requireAuth, requireRole("regional_admin"), async (req, re
     if (!phc) {
       return res.status(404).json({ error: "PHC not found" });
     }
-    res.json({ message: "PHC deleted" });
+    const [stockResult, attendanceResult] = await Promise.all([
+      MedicineStock.deleteMany({ phc: phc._id }),
+      Attendance.deleteMany({ phc: phc._id }),
+    ]);
+    res.json({
+      message: "PHC deleted",
+      deletedStockRecords: stockResult.deletedCount,
+      deletedAttendanceRecords: attendanceResult.deletedCount,
+    });
   } catch (err) {
     console.error("PHC delete error:", err);
     res.status(500).json({ error: "Failed to delete PHC" });

@@ -16,7 +16,8 @@ router.get("/", requireAuth, async (req, res) => {
     const phc = req.query.phc as string | undefined;
     const filter = phc ? { phc } : {};
     const stock = await MedicineStock.find(filter).populate("phc");
-    res.json(stock);
+    const valid = stock.filter((item: any) => item.phc);
+    res.json(valid);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch stock" });
   }
@@ -64,9 +65,11 @@ router.get("/alerts", requireAuth, async (req, res) => {
 
     const stock = await MedicineStock.find().populate("phc");
 
+    const withValidPhc = stock.filter((s: any) => s.phc);
+
     const filtered = state
-      ? stock.filter((s: any) => s.phc?.state === state)
-      : stock;
+      ? withValidPhc.filter((s: any) => s.phc?.state === state)
+      : withValidPhc;
 
     const risky = filtered
       .map((item: any) => {
@@ -126,7 +129,9 @@ router.get("/redistribution", requireAuth, async (_req, res) => {
   try {
     const stock = await MedicineStock.find().populate("phc");
 
-    const stockItems = stock.map((item: any) => ({
+    const withValidPhc = stock.filter((item: any) => item.phc);
+
+    const stockItems = withValidPhc.map((item: any) => ({
       phcId: item.phc?._id?.toString(),
       phcName: item.phc?.name,
       state: item.phc?.state,
