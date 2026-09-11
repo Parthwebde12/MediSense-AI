@@ -8,6 +8,8 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     navigate("/login");
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    
   };
 
   return (
