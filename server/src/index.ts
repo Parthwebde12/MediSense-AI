@@ -10,7 +10,7 @@ import { startConsumptionSimulation } from "./utils/simulateConsumption";
 import countryRoutes from "./routes/country";
 import riskRoutes from "./routes/risk";
 
-dotenv.config({ path: ".env.local" });
+dotenv.config({ path: [".env.local", ".env"] });
 connectDB();
 
 const app = express();
@@ -40,7 +40,14 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: "Internal server error" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  startConsumptionSimulation(30000);
-});
+const start = async () => {
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    if (process.env.SIMULATE_CONSUMPTION === "true") {
+      startConsumptionSimulation(30000);
+    }
+  });
+};
+
+start();

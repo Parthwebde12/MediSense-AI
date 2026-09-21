@@ -21,3 +21,11 @@ export const calculateDepletion = (
 
   return { daysRemaining, status };
 };
+
+export const calculateRiskScore = (minDaysRemaining: number, attendanceRate: number) => {
+  const stockRisk = minDaysRemaining <= 0 ? 100 : Math.max(0, 100 - minDaysRemaining * 8);
+  const staffRisk = Math.max(0, 100 - attendanceRate * 100);
+  const score = Math.round(stockRisk * 0.65 + staffRisk * 0.35);
+  const level = score >= 65 ? "critical" : score >= 35 ? "elevated" : "stable";
+  return { score, level } as { score: number; level: "critical" | "elevated" | "stable" };
+};
