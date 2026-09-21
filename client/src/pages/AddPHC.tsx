@@ -1,11 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  fetchAllCountries,
-  createPHC,
-  fetchAllPHCs,
-  deletePHC,
-} from "../lib/stockApi";
+import {fetchAllCountries,createPHC,fetchAllPHCs,deletePHC,} from "../lib/stockApi";
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
 import { Building2, ArrowLeft, Check, Trash2 } from "lucide-react";
@@ -44,9 +39,17 @@ export default function AddPHC() {
   const deletePhcMutation = useMutation({
     mutationFn: deletePHC,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["phcs"] });
+      for (const key of ["phcs", "stock", "attendance", "alerts", "redistribution", "risk"]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
     },
   });
+
+  const handleDelete = (id: string, phcName: string) => {
+    if (window.confirm(`Delete "${phcName}" and all its stock and attendance records?`)) {
+      deletePhcMutation.mutate(id);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,7 +165,7 @@ export default function AddPHC() {
                     </span>
                   </span>
                   <button
-                    onClick={() => deletePhcMutation.mutate(p._id)}
+                    onClick={() => handleDelete(p._id, p.name)}
                     disabled={deletePhcMutation.isPending}
                     className="text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
                   >
