@@ -153,7 +153,7 @@ export default function AddPHC() {
           <h2 className="text-sm font-semibold text-slate-800 mb-3">Manage PHCs</h2>
           <div className="bg-white border border-slate-100 rounded-2xl shadow-sm divide-y divide-slate-50">
             {phcs?.length ? (
-              phcs.map((p:any) => (
+              phcs.map((p) => (
                 <div key={p._id} className="flex items-center justify-between px-4 py-3">
                   <span className="text-sm text-slate-700">
                     {p.name}{" "}

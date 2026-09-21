@@ -6,11 +6,9 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
-    navigate("/login");
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    
-  };
+  logout();
+  navigate("/login");
+};
 
   return (
     <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">

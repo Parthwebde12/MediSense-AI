@@ -95,15 +95,7 @@ export const fetchAllCountries = async (): Promise<Country[]> => {
   return res.data;
 };
 
-export const deleteCountry = async (id: string) => {
-  const res = await api.delete(`/country/${id}`);
-  return res.data;
-};
 
-export const createCountry = async (payload: { name: string; code: string }) => {
-  const res = await api.post("/country", payload);
-  return res.data;
-};
 
 export const deletePHC = async (id: string) => {
   const res = await api.delete(`/phc/${id}`);

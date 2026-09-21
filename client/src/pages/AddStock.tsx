@@ -83,7 +83,7 @@ export default function AddStock() {
             required
           >
             <option value="">Select a PHC</option>
-            {phcs?.map((p:any) => (
+            {phcs?.map((p) => (
               <option key={p._id} value={p._id}>
                 {p.name} {p.state ? `(${p.state})` : ""}
               </option>

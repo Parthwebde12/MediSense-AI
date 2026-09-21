@@ -1,10 +1,10 @@
-import { Routes, Route } from "react-router-dom"
-import Login from "./pages/Login"
-import Dashboard from "./pages/Dasboard"
-import AddStock from "./pages/AddStock"
-import ProtectedRoute from "./components/ProtectedRoutes"
-import AddPHC from "./pages/AddPHC"
-import AddAttendance from "./pages/AddAttendance"
+import { Routes, Route } from "react-router-dom";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dasboard";
+import AddStock from "./pages/AddStock";
+import ProtectedRoute from "./components/ProtectedRoutes";
+import AddPHC from "./pages/AddPHC";
+import AddAttendance from "./pages/AddAttendance";
 
 function App() {
   return (
@@ -44,7 +44,7 @@ function App() {
       />
       <Route path="/" element={<Login />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;
