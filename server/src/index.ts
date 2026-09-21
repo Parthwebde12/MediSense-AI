@@ -21,7 +21,8 @@ app.use(cors({
     "http://localhost:5173",
     "https://smart-health-brics.vercel.app",
   ],
-}));app.use(express.json());
+}));
+app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "smart-health-brics-server" });
@@ -34,7 +35,12 @@ app.use("/api/attendance", attendance);
 app.use("/api/country", countryRoutes);
 app.use("/api/risk", riskRoutes);
 
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err);
+  res.status(500).json({ error: "Internal server error" });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  startConsumptionSimulation(30000); 
+  startConsumptionSimulation(30000);
 });

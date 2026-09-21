@@ -6,10 +6,6 @@ export interface IPHC extends Document {
   state: string;
   district: string;
   city: string;
-  location?: {
-    lat: number;
-    lng: number;
-  };
 }
 
 const PHCSchema = new Schema<IPHC>({
@@ -18,10 +14,6 @@ const PHCSchema = new Schema<IPHC>({
   state: { type: String, required: true },
   district: { type: String, required: true },
   city: { type: String, required: true },
-  location: {
-    lat: { type: Number },
-    lng: { type: Number },
-  },
 });
 
 export default mongoose.model<IPHC>("PHC", PHCSchema);
