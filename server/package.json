@@ -4,11 +4,12 @@
   "description": "",
   "main": "dist/index.ts",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "seed": "ts-node src/seed.ts"
-  },
+  "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+  "build": "tsc",
+  "start": "node dist/index.js",
+  "seed": "ts-node src/seed.ts",
+  "create-user": "ts-node src/createUser.ts"
+},
   "keywords": [],
   "author": "Parth Wakodikar",
   "license": "ISC",

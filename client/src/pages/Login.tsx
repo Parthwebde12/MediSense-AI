@@ -4,6 +4,9 @@ import api from "../lib/api";
 import { useAuth } from "../context/Authcontext";
 import { HeartPulse, Globe2, Sparkles } from "lucide-react";
 
+const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined;
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,9 +31,9 @@ export default function Login() {
   };
 
   const fillDemo = () => {
-    setEmail("demo@smarthealth.com");
-    setPassword("demo1234");
-  };
+  setEmail(DEMO_EMAIL ?? "");
+  setPassword(DEMO_PASSWORD ?? "");
+};
 
   return (
     <div className="min-h-screen flex">
@@ -119,17 +122,19 @@ export default function Login() {
             </button>
           </form>
 
-          <button
-            type="button"
-            onClick={fillDemo}
-            className="mt-4 w-full text-left bg-white border border-slate-100 rounded-2xl px-4 py-3 text-xs text-slate-500 hover:border-slate-200 hover:shadow-sm transition-all"
-          >
-            <p className="font-medium text-slate-700 mb-1.5 flex items-center gap-1.5">
-              <Sparkles size={13} /> Try the demo account
-            </p>
-            <p>Email: <span className="font-mono text-slate-700">demo@smarthealth.com</span></p>
-            <p>Password: <span className="font-mono text-slate-700">demo1234</span></p>
-          </button>
+          
+  <button
+    type="button"
+    onClick={fillDemo}
+    className="mt-4 w-full text-left bg-white border border-slate-100 rounded-2xl px-4 py-3 text-xs text-slate-500 hover:border-slate-200 hover:shadow-sm transition-all"
+  >
+    <p className="font-medium text-slate-700 mb-1.5 flex items-center gap-1.5">
+      <Sparkles size={13} /> Try the demo account
+    </p>
+    <p>Email: <span className="font-mono text-slate-700">{DEMO_EMAIL}</span></p>
+    <p>Password: <span className="font-mono text-slate-700">{DEMO_PASSWORD}</span></p>
+  </button>
+
         </div>
       </div>
     </div>
