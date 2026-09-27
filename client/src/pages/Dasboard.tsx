@@ -5,8 +5,7 @@ import StockTrendChart from "../components/StockTrendChart";
 import { Building2, AlertTriangle, ArrowLeftRight, Pill, Globe2, Users, Gauge } from "lucide-react";
 import { useState, Fragment } from "react";
 import ChatWidget from "../components/ChatWidget";
-import PHCMap from "../components/PHCmap";
-
+import PHCMap from "../components/PHCMap";
 
 function formatDaysLeft(daysRemaining: number): string {
   if (daysRemaining <= 0) return "No stock left";
