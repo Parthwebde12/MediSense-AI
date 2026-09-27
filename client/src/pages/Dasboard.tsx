@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import StockTrendChart from "../components/StockTrendChart";
 import { Building2, AlertTriangle, ArrowLeftRight, Pill, Globe2, Users, Gauge } from "lucide-react";
 import { useState, Fragment } from "react";
+import ChatWidget from "../components/ChatWidget";
 
 function formatDaysLeft(daysRemaining: number): string {
   if (daysRemaining <= 0) return "No stock left";
@@ -407,6 +408,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <ChatWidget />
     </div>
   );
 }

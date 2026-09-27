@@ -161,3 +161,8 @@ export const fetchStockTrend = async (id: string): Promise<StockTrendResponse> =
   const res = await api.get(`/stock/${id}/trend`);
   return res.data;
 };
+
+export const sendChatMessage = async (message: string): Promise<string> => {
+  const res = await api.post("/chat", { message });
+  return res.data.reply;
+};

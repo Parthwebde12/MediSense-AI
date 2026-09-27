@@ -9,6 +9,8 @@ import attendance from "./routes/attendance";
 import { startConsumptionSimulation } from "./utils/simulateConsumption";
 import countryRoutes from "./routes/country";
 import riskRoutes from "./routes/risk";
+import chatRoutes from "./routes/chat";
+
 
 dotenv.config({ path: [".env.local", ".env"] });
 connectDB();
@@ -34,6 +36,7 @@ app.use("/api/stock", medicineStockRoutes);
 app.use("/api/attendance", attendance);
 app.use("/api/country", countryRoutes);
 app.use("/api/risk", riskRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
