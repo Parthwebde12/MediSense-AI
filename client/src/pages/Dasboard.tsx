@@ -5,6 +5,13 @@ import StockTrendChart from "../components/StockTrendChart";
 import { Building2, AlertTriangle, ArrowLeftRight, Pill, Globe2, Users, Gauge } from "lucide-react";
 import { useState, Fragment } from "react";
 
+function formatDaysLeft(daysRemaining: number): string {
+  if (daysRemaining <= 0) return "No stock left";
+  if (daysRemaining === 1) return "1 day left";
+  if (daysRemaining <= 3) return `${daysRemaining} days stock left`;
+  return `${daysRemaining} days left`;
+}
+
 export default function Dashboard() {
   const { data: phcs, isLoading: phcsLoading, isError: phcsError } = useQuery({
     queryKey: ["phcs"],
@@ -193,7 +200,16 @@ export default function Dashboard() {
                     }`}
                   >
                     <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                    <span>{a.message}</span>
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className={`text-xs font-semibold uppercase tracking-wide ${
+                          a.status === "critical" ? "text-red-600" : "text-amber-600"
+                        }`}
+                      >
+                        {formatDaysLeft(a.daysRemaining)}
+                      </span>
+                      <span>{a.message}</span>
+                    </div>
                   </div>
                 ))
               ) : (
