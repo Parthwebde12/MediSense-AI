@@ -160,4 +160,24 @@ router.get("/redistribution", requireAuth, async (_req, res) => {
   res.json(suggestions);
 });
 
+router.get("/:id/trend", requireAuth, async (req, res) => {
+  const stock = await MedicineStock.findById(req.params.id);
+  if (!stock) {
+    return res.status(404).json({ error: "Stock record not found" });
+  }
+
+  const days = 14;
+  const trend = Array.from({ length: days + 1 }, (_, i) => ({
+    day: i,
+    quantity: Math.max(0, Math.round(stock.quantity - stock.dailyConsumptionRate * i)),
+  }));
+
+  res.json({
+    medicineName: stock.medicineName,
+    unit: stock.unit,
+    dailyConsumptionRate: stock.dailyConsumptionRate,
+    trend,
+  });
+});
+
 export default router;

@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import {fetchAlerts, fetchRedistribution, fetchAllPHCs,fetchAllStock, fetchAllAttendance, fetchRiskScores} from "../lib/stockApi";
+import {fetchAlerts, fetchRedistribution, fetchAllPHCs,fetchAllStock, fetchAllAttendance, fetchRiskScores, fetchStockTrend} from "../lib/stockApi";
 import Navbar from "../components/Navbar";
+import StockTrendChart from "../components/StockTrendChart";
 import { Building2, AlertTriangle, ArrowLeftRight, Pill, Globe2, Users, Gauge } from "lucide-react";
+import { useState, Fragment } from "react";
 
 export default function Dashboard() {
   const { data: phcs, isLoading: phcsLoading, isError: phcsError } = useQuery({
@@ -38,6 +40,14 @@ export default function Dashboard() {
     queryKey: ["risk"],
     queryFn: fetchRiskScores,
     refetchInterval: 15000,
+  });
+
+  const [expandedStockId, setExpandedStockId] = useState<string | null>(null);
+
+  const { data: trendData, isLoading: trendLoading } = useQuery({
+    queryKey: ["stockTrend", expandedStockId],
+    queryFn: () => fetchStockTrend(expandedStockId as string),
+    enabled: !!expandedStockId,
   });
 
   const stateMap = new Map<string, { name: string; phcCount: number }>();
@@ -277,6 +287,7 @@ export default function Dashboard() {
           <h2 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
             <Pill size={14} className="text-slate-400" /> All Stock Entries
           </h2>
+          <p className="text-xs text-slate-400 mb-2">Click a row to see its projected depletion trend.</p>
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -290,15 +301,34 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {stock?.length ? (
-                  stock.map((s) => (
-                    <tr key={s._id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                      <td className="px-4 py-3 text-slate-800 font-medium">{s.medicineName}</td>
-                      <td className="px-4 py-3 text-slate-600">{s.phc?.name ?? "—"}</td>
-                      <td className="px-4 py-3 text-slate-600">{s.phc?.state ?? "—"}</td>
-                      <td className="px-4 py-3 text-slate-800">{s.quantity} {s.unit}</td>
-                      <td className="px-4 py-3 text-slate-600">{s.dailyConsumptionRate}/day</td>
-                    </tr>
-                  ))
+                  stock.map((s) => {
+                    const isExpanded = expandedStockId === s._id;
+                    return (
+                      <Fragment key={s._id}>
+                        <tr
+                          onClick={() => setExpandedStockId(isExpanded ? null : s._id)}
+                          className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors cursor-pointer"
+                        >
+                          <td className="px-4 py-3 text-slate-800 font-medium">{s.medicineName}</td>
+                          <td className="px-4 py-3 text-slate-600">{s.phc?.name ?? "—"}</td>
+                          <td className="px-4 py-3 text-slate-600">{s.phc?.state ?? "—"}</td>
+                          <td className="px-4 py-3 text-slate-800">{s.quantity} {s.unit}</td>
+                          <td className="px-4 py-3 text-slate-600">{s.dailyConsumptionRate}/day</td>
+                        </tr>
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan={5} className="px-4 py-3 bg-white">
+                              {trendLoading ? (
+                                <p className="text-xs text-slate-400">Loading trend…</p>
+                              ) : trendData ? (
+                                <StockTrendChart trend={trendData.trend} unit={trendData.unit} />
+                              ) : null}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={5} className="px-4 py-6 text-center text-slate-400">

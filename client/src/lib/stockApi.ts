@@ -144,3 +144,20 @@ export const createAttendance = async (payload: NewAttendancePayload) => {
   const res = await api.post("/attendance", payload);
   return res.data;
 };
+
+export interface StockTrendPoint {
+  day: number;
+  quantity: number;
+}
+
+export interface StockTrendResponse {
+  medicineName: string;
+  unit: string;
+  dailyConsumptionRate: number;
+  trend: StockTrendPoint[];
+}
+
+export const fetchStockTrend = async (id: string): Promise<StockTrendResponse> => {
+  const res = await api.get(`/stock/${id}/trend`);
+  return res.data;
+};
