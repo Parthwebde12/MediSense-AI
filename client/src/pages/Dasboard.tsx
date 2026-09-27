@@ -5,6 +5,8 @@ import StockTrendChart from "../components/StockTrendChart";
 import { Building2, AlertTriangle, ArrowLeftRight, Pill, Globe2, Users, Gauge } from "lucide-react";
 import { useState, Fragment } from "react";
 import ChatWidget from "../components/ChatWidget";
+import PHCMap from "../components/PHCmap";
+
 
 function formatDaysLeft(daysRemaining: number): string {
   if (daysRemaining <= 0) return "No stock left";
@@ -184,6 +186,17 @@ export default function Dashboard() {
               );
             })}
           </div>
+        </div>
+
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-slate-800 mb-3">State Map</h2>
+          <PHCMap
+            states={Array.from(stateMap.values()).map((s) => ({
+              name: s.name,
+              phcCount: s.phcCount,
+              alertCount: alertsByState.get(s.name) || 0,
+            }))}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-6 mb-8">
