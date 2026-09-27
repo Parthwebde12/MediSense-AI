@@ -10,38 +10,42 @@ export interface MapStateEntry {
 
 export default function PHCMap({ states }: { states: MapStateEntry[] }) {
   return (
-    <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm" style={{ height: 420 }}>
+    <div className="h-125 w-full rounded-xl overflow-hidden">
       <MapContainer
-        center={[22.9734, 78.6569]}
-        zoom={4.5}
-        style={{ height: "100%", width: "100%" }}
+        center={[22.5, 80]}
+        zoom={5}
         scrollWheelZoom={false}
+        className="h-full w-full"
       >
         <TileLayer
-          attribution='&copy; OpenStreetMap contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {states.map((s) => {
-          const coords = indiaStateCoordinates[s.name];
-          if (!coords) return null;
-          const healthy = s.alertCount === 0;
+
+        {states.map((state) => {
+          const coordinates = indiaStateCoordinates[state.name];
+
+          if (!coordinates) return null;
+
           return (
             <CircleMarker
-              key={s.name}
-              center={coords}
-              radius={8 + Math.min(s.phcCount, 10) * 2}
+              key={state.name}
+              center={coordinates}
+              radius={Math.max(
+                8,
+                Math.min(state.phcCount / 10, 30)
+              )}
               pathOptions={{
-                color: healthy ? "#10b981" : "#ef4444",
-                fillColor: healthy ? "#10b981" : "#ef4444",
-                fillOpacity: 0.5,
+                color: state.alertCount > 0 ? "red" : "green",
+                fillColor: state.alertCount > 0 ? "red" : "green",
+                fillOpacity: 0.6,
               }}
             >
               <Popup>
-                <strong>{s.name}</strong>
+                <strong>{state.name}</strong>
                 <br />
-                {s.phcCount} PHC{s.phcCount !== 1 ? "s" : ""}
+                PHCs: {state.phcCount}
                 <br />
-                {s.alertCount} alert{s.alertCount !== 1 ? "s" : ""}
+                Alerts: {state.alertCount}
               </Popup>
             </CircleMarker>
           );
