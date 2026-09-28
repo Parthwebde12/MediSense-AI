@@ -4,13 +4,17 @@ import MedicineStock from "../models/MedicineStock";
 import { calculateDepletion } from "../utils/forecast";
 import { findRedistributionMatches } from "../utils/redistribution";
 import { requireAuth } from "../middleware/auth";
+import { chatLimiter } from "../middleware/ratelimit";
 
 const router = Router();
 
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, chatLimiter, async (req, res) => {
   const { message } = req.body;
   if (!message || typeof message !== "string") {
     return res.status(400).json({ error: "message is required" });
+  }
+  if (message.length > 500) {
+    return res.status(400).json({ error: "message too long (max 500 chars)" });
   }
 
   const stock = (await MedicineStock.find().populate("phc")).filter(

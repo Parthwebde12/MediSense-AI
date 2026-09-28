@@ -12,10 +12,7 @@ import riskRoutes from "./routes/risk";
 import chatRoutes from "./routes/chat";
 import { apiLimiter, loginLimiter } from "./middleware/ratelimit";
 
-
-
 dotenv.config({ path: [".env.local", ".env"] });
-connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -32,7 +29,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "smart-health-brics-server" });
 });
 
-app.set("trust proxy", 1); 
+app.set("trust proxy", 1);
 app.use("/api", apiLimiter);
 app.use("/api/auth/login", loginLimiter);
 
@@ -43,7 +40,6 @@ app.use("/api/attendance", attendance);
 app.use("/api/country", countryRoutes);
 app.use("/api/risk", riskRoutes);
 app.use("/api/chat", chatRoutes);
-
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
@@ -60,4 +56,7 @@ const start = async () => {
   });
 };
 
-start();
+start().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});

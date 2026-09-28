@@ -30,3 +30,12 @@ export const aiLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "AI endpoints are rate limited. Try again shortly." },
 });
+
+export const chatLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 10,
+  keyGenerator: userOrIp,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Chat is rate limited. Try again in a minute." },
+});

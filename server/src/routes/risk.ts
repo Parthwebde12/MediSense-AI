@@ -6,6 +6,7 @@ import Attendance from "../models/Attendance";
 import { calculateDepletion, calculateRiskScore } from "../utils/forecast";
 import { generateRiskExplanation } from "../utils/gemini";
 import { requireAuth } from "../middleware/auth";
+import { aiLimiter } from "../middleware/ratelimit";
 
 const router = Router();
 
@@ -23,7 +24,7 @@ const getRiskScore = async (minDaysRemaining: number, attendanceRate: number) =>
   }
 };
 
-router.get("/", requireAuth, async (_req, res) => {
+router.get("/", requireAuth, aiLimiter, async (_req, res) => {
   if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
     return res.json(cache.data);
   }

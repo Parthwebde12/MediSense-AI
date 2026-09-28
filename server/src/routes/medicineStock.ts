@@ -4,13 +4,11 @@ import { calculateDepletion } from "../utils/forecast";
 import { findRedistributionMatches } from "../utils/redistribution";
 import { generateAlertText, generateRedistributionText } from "../utils/gemini";
 import { requireAuth, requireRole } from "../middleware/auth";
+import { aiLimiter } from "../middleware/ratelimit";
 
 const router = Router();
 
-const alertMessageCache = new Map<
-  string,
-  { daysRemaining: number; message: string }
->();
+const alertMessageCache = new Map<string, { daysRemaining: number; message: string }>();
 const redistributionMessageCache = new Map<string, string>();
 
 router.get("/", requireAuth, async (req, res) => {
@@ -58,7 +56,7 @@ router.patch(
   },
 );
 
-router.get("/alerts", requireAuth, async (req, res) => {
+router.get("/alerts", requireAuth, aiLimiter, async (req, res) => {
   const state = req.query.state as string | undefined;
   const stock = (await MedicineStock.find().populate("phc")).filter(
     (s: any) => s.phc,
@@ -113,7 +111,7 @@ router.get("/alerts", requireAuth, async (req, res) => {
   res.json(alerts);
 });
 
-router.get("/redistribution", requireAuth, async (_req, res) => {
+router.get("/redistribution", requireAuth, aiLimiter, async (_req, res) => {
   const stock = (await MedicineStock.find().populate("phc")).filter(
     (item: any) => item.phc,
   );
