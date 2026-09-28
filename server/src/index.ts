@@ -10,6 +10,8 @@ import { startConsumptionSimulation } from "./utils/simulateConsumption";
 import countryRoutes from "./routes/country";
 import riskRoutes from "./routes/risk";
 import chatRoutes from "./routes/chat";
+import { apiLimiter, loginLimiter } from "./middleware/ratelimit";
+
 
 
 dotenv.config({ path: [".env.local", ".env"] });
@@ -30,6 +32,10 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "smart-health-brics-server" });
 });
 
+app.set("trust proxy", 1); 
+app.use("/api", apiLimiter);
+app.use("/api/auth/login", loginLimiter);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/phc", phcRoutes);
 app.use("/api/stock", medicineStockRoutes);
@@ -37,6 +43,7 @@ app.use("/api/attendance", attendance);
 app.use("/api/country", countryRoutes);
 app.use("/api/risk", riskRoutes);
 app.use("/api/chat", chatRoutes);
+
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
