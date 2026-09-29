@@ -1,159 +1,148 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchAllPHCs, createStock } from "../lib/stockApi";
-import Navbar from "../components/Navbar";
-import { Link } from "react-router-dom";
-import { Pill, ArrowLeft,Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { HeartPulse, Globe2, Sparkles } from "lucide-react";
+import api from "../lib/api";
+import { useAuth } from "../context/useAuth";
+import { inputClass, labelClass } from "../lib/styles";
 
-export default function AddStock() {
-  const queryClient = useQueryClient();
-  const { data: phcs } = useQuery({ queryKey: ["phcs"], queryFn: fetchAllPHCs });
+const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined;
+const hasDemo = Boolean(DEMO_EMAIL && DEMO_PASSWORD);
 
-  const [phc, setPhc] = useState("");
-  const [medicineName, setMedicineName] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [unit, setUnit] = useState("tablets");
-  const [dailyConsumptionRate, setDailyConsumptionRate] = useState("");
-  const [success, setSuccess] = useState(false);
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const mutation = useMutation({
-    mutationFn: createStock,
-    onSuccess: () => {
-      setSuccess(true);
-      setMedicineName("");
-      setQuantity("");
-      setDailyConsumptionRate("");
-      queryClient.invalidateQueries({ queryKey: ["alerts"] });
-      queryClient.invalidateQueries({ queryKey: ["redistribution"] });
-      setTimeout(() => setSuccess(false), 3000);
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phc || !medicineName || !quantity || !dailyConsumptionRate) return;
-    mutation.mutate({
-      phc,
-      medicineName,
-      quantity: Number(quantity),
-      unit,
-      dailyConsumptionRate: Number(dailyConsumptionRate),
-    });
+    setError("");
+    setLoading(true);
+    try {
+      const res = await api.post("/auth/login", { email, password });
+      login(res.data.token, res.data.user);
+      navigate("/dashboard");
+    } catch {
+      setError("Invalid email or password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fillDemo = () => {
+    setEmail(DEMO_EMAIL ?? "");
+    setPassword(DEMO_PASSWORD ?? "");
   };
 
   return (
-  <div className="min-h-screen bg-slate-50">
-    <Navbar />
-    <div className="max-w-md mx-auto p-6">
-      <Link
-  to="/dashboard"
-  className="text-sm text-slate-500 hover:text-slate-900 transition-colors mb-6 inline-flex items-center gap-1.5"
->
-  <ArrowLeft size={16} /> Back to Dashboard
-</Link>
+    <div className="min-h-screen flex">
+      <div className="hidden lg:flex lg:w-1/2 bg-slate-900 text-white p-12 flex-col justify-between relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-64 h-64 bg-blue-500 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-80 h-80 bg-emerald-500 rounded-full blur-3xl" />
+        </div>
 
-<div className="mb-6">
-  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center mb-3">
-    <Pill size={20} className="text-amber-600" />
-  </div>
-        <h1 className="text-xl font-semibold text-slate-900">Add Stock Entry</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Log new or updated medicine stock for a PHC.
-        </p>
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-16">
+            <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center">
+              <HeartPulse size={18} className="text-slate-900" />
+            </div>
+            <span className="font-semibold text-lg">Smart Health</span>
+          </div>
+
+          <h1 className="text-4xl font-semibold leading-tight mb-4">
+            Predicting shortages
+            <br />
+            before they happen.
+          </h1>
+          <p className="text-slate-400 text-base max-w-md">
+            An AI-powered platform that forecasts medicine stock-outs and recommends cross-border
+            redistribution across health centres.
+          </p>
+        </div>
+
+        <div className="relative z-10 space-y-4">
+          <div className="flex items-center gap-3 text-sm text-slate-300">
+            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center shrink-0">
+              <Sparkles size={15} />
+            </div>
+            Gemini-powered early-warning alerts
+          </div>
+          <div className="flex items-center gap-3 text-sm text-slate-300">
+            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center shrink-0">
+              <Globe2 size={15} />
+            </div>
+            Cross-State redistribution matching
+          </div>
+        </div>
       </div>
 
-     {success && (
-  <div className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
-    <Check size={16} /> Stock entry added successfully.
-  </div>
-)}
-      {mutation.isError && (
-        <div className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4">
-          Failed to add stock entry. Please try again.
-        </div>
-      )}
+      <div className="w-full lg:w-1/2 flex items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-sm">
+          <div className="lg:hidden flex items-center gap-2 mb-8">
+            <div className="w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center">
+              <HeartPulse size={18} className="text-white" />
+            </div>
+            <span className="font-semibold text-lg text-slate-900">Smart Health</span>
+          </div>
 
-      <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1.5">PHC</label>
-          <select
-            value={phc}
-            onChange={(e) => setPhc(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
-            required
-          >
-            <option value="">Select a PHC</option>
-            {phcs?.map((p) => (
-              <option key={p._id} value={p._id}>
-                {p.name} {p.state ? `(${p.state})` : ""}
-              </option>
-            ))}
-          </select>
-        </div>
+          <h2 className="text-xl font-semibold text-slate-900 mb-1">Welcome back</h2>
+          <p className="text-sm text-slate-500 mb-6">Sign in to your regional dashboard</p>
 
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1.5">Medicine name</label>
-          <input
-            type="text"
-            value={medicineName}
-            onChange={(e) => setMedicineName(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
-            placeholder="e.g. Paracetamol"
-            required
-          />
-        </div>
+          <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            {error && (
+              <p className="text-red-600 text-sm mb-4 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+            )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Quantity</label>
+            <label className={labelClass}>Email</label>
             <input
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
-              min="0"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={`${inputClass} mb-4`}
               required
             />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Unit</label>
-            <select
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
+
+            <label className={labelClass}>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`${inputClass} mb-6`}
+              required
+            />
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-slate-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
-              <option value="tablets">tablets</option>
-              <option value="vials">vials</option>
-              <option value="sachets">sachets</option>
-              <option value="boxes">boxes</option>
-            </select>
-          </div>
-        </div>
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
 
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1.5">
-            Daily consumption rate
-          </label>
-          <input
-            type="number"
-            value={dailyConsumptionRate}
-            onChange={(e) => setDailyConsumptionRate(e.target.value)}
-            className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
-            min="0"
-            placeholder="units used per day"
-            required
-          />
+          {hasDemo && (
+            <button
+              type="button"
+              onClick={fillDemo}
+              className="mt-4 w-full text-left bg-white border border-slate-100 rounded-2xl px-4 py-3 text-xs text-slate-500 hover:border-slate-200 hover:shadow-sm transition-all"
+            >
+              <p className="font-medium text-slate-700 mb-1.5 flex items-center gap-1.5">
+                <Sparkles size={13} /> Try the demo account
+              </p>
+              <p>
+                Email: <span className="font-mono text-slate-700">{DEMO_EMAIL}</span>
+              </p>
+              <p>
+                Password: <span className="font-mono text-slate-700">{DEMO_PASSWORD}</span>
+              </p>
+            </button>
+          )}
         </div>
-
-        <button
-          type="submit"
-          disabled={mutation.isPending}
-          className="w-full bg-slate-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-50 mt-2"
-        >
-          {mutation.isPending ? "Adding…" : "Add stock entry"}
-        </button>
-      </form>
+      </div>
     </div>
-  </div>
-);
+  );
 }

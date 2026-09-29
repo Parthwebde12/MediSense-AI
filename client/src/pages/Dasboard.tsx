@@ -1,11 +1,50 @@
+import { Fragment, useState } from "react";
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {fetchAlerts, fetchRedistribution, fetchAllPHCs,fetchAllStock, fetchAllAttendance, fetchRiskScores, fetchStockTrend} from "../lib/stockApi";
+import {
+  AlertTriangle,
+  ArrowLeftRight,
+  BedDouble,
+  Building2,
+  Gauge,
+  Globe2,
+  Pill,
+  Users,
+} from "lucide-react";
+import {
+  fetchAlerts,
+  fetchAllAttendance,
+  fetchAllPHCs,
+  fetchAllStock,
+  fetchRedistribution,
+  fetchRiskScores,
+  fetchStockTrend,
+} from "../lib/stockApi";
+import type { Alert, AttendanceRecord, Lang, RiskScore, StockItem } from "../lib/stockApi";
 import Navbar from "../components/Navbar";
+import StatCard from "../components/StatCard";
 import StockTrendChart from "../components/StockTrendChart";
-import { Building2, AlertTriangle, ArrowLeftRight, Pill, Globe2, Users, Gauge, BedDouble } from "lucide-react";
-import { useState, Fragment } from "react";
 import ChatWidget from "../components/ChatWidget";
 import PHCMap from "../components/PHCMap";
+
+const POLL_MS = 15_000;
+const MAX_ATTENDANCE_ROWS = 15;
+
+const LANGS: { value: Lang; label: string }[] = [
+  { value: "en", label: "EN" },
+  { value: "hi", label: "हिं" },
+];
+
+const ALERT_STYLES = {
+  critical: { box: "bg-red-50 text-red-700 border-red-100", label: "text-red-600" },
+  warning: { box: "bg-amber-50 text-amber-700 border-amber-100", label: "text-amber-600" },
+} as const;
+
+const RISK_STYLES = {
+  critical: { badge: "bg-red-50 text-red-700 border-red-100", bar: "bg-red-400" },
+  elevated: { badge: "bg-amber-50 text-amber-700 border-amber-100", bar: "bg-amber-400" },
+  stable: { badge: "bg-emerald-50 text-emerald-700 border-emerald-100", bar: "bg-emerald-400" },
+} as const;
 
 function formatDaysLeft(daysRemaining: number): string {
   if (daysRemaining <= 0) return "No stock left";
@@ -14,74 +53,228 @@ function formatDaysLeft(daysRemaining: number): string {
   return `${daysRemaining} days left`;
 }
 
+function countBy<T>(items: T[] | undefined, key: (item: T) => string | undefined) {
+  const counts = new Map<string, number>();
+  items?.forEach((item) => {
+    const k = key(item);
+    if (k) counts.set(k, (counts.get(k) ?? 0) + 1);
+  });
+  return counts;
+}
+
+function SectionTitle({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
+  return (
+    <h2 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+      {icon}
+      {children}
+    </h2>
+  );
+}
+
+function EmptyState({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-sm text-slate-400 bg-white rounded-xl px-4 py-3 border border-slate-100">
+      {children}
+    </p>
+  );
+}
+
+function DataTable({ headers, children }: { headers: string[]; children: ReactNode }) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-slate-100 text-left text-xs text-slate-500 uppercase tracking-wide bg-slate-50/50">
+            {headers.map((h) => (
+              <th key={h} className="px-4 py-3">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function EmptyRow({ colSpan, children }: { colSpan: number; children: ReactNode }) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="px-4 py-6 text-center text-slate-400">
+        {children}
+      </td>
+    </tr>
+  );
+}
+
+function AlertCard({ alert }: { alert: Alert }) {
+  const styles = ALERT_STYLES[alert.status];
+  return (
+    <div className={`flex gap-3 items-start rounded-xl px-4 py-3 text-sm border ${styles.box}`}>
+      <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+      <div className="flex flex-col gap-1">
+        <span className={`text-xs font-semibold uppercase tracking-wide ${styles.label}`}>
+          {formatDaysLeft(alert.daysRemaining)}
+        </span>
+        <span>{alert.message}</span>
+      </div>
+    </div>
+  );
+}
+
+function RiskCard({ risk }: { risk: RiskScore }) {
+  const styles = RISK_STYLES[risk.level];
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-slate-900">{risk.phcName}</span>
+          <span className="text-xs text-slate-400">{risk.countryName}</span>
+        </div>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${styles.badge}`}>
+          {risk.level} · {risk.score}/100
+        </span>
+      </div>
+      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2">
+        <div className={`h-full ${styles.bar}`} style={{ width: `${risk.score}%` }} />
+      </div>
+      <p className="text-xs text-slate-500">{risk.explanation}</p>
+    </div>
+  );
+}
+
+function StockTable({ stock }: { stock?: StockItem[] }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const { data: trend, isLoading } = useQuery({
+    queryKey: ["stockTrend", expandedId],
+    queryFn: () => fetchStockTrend(expandedId as string),
+    enabled: !!expandedId,
+  });
+
+  return (
+    <DataTable headers={["Medicine", "PHC", "State", "Quantity", "Daily Use"]}>
+      {stock?.length ? (
+        stock.map((s) => {
+          const isExpanded = expandedId === s._id;
+          return (
+            <Fragment key={s._id}>
+              <tr
+                onClick={() => setExpandedId(isExpanded ? null : s._id)}
+                className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors cursor-pointer"
+              >
+                <td className="px-4 py-3 text-slate-800 font-medium">{s.medicineName}</td>
+                <td className="px-4 py-3 text-slate-600">{s.phc?.name ?? "—"}</td>
+                <td className="px-4 py-3 text-slate-600">{s.phc?.state ?? "—"}</td>
+                <td className="px-4 py-3 text-slate-800">
+                  {s.quantity} {s.unit}
+                </td>
+                <td className="px-4 py-3 text-slate-600">{s.dailyConsumptionRate}/day</td>
+              </tr>
+              {isExpanded && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-3 bg-white">
+                    {isLoading ? (
+                      <p className="text-xs text-slate-400">Loading trend…</p>
+                    ) : trend ? (
+                      <StockTrendChart trend={trend.trend} unit={trend.unit} />
+                    ) : null}
+                  </td>
+                </tr>
+              )}
+            </Fragment>
+          );
+        })
+      ) : (
+        <EmptyRow colSpan={5}>No stock entries yet.</EmptyRow>
+      )}
+    </DataTable>
+  );
+}
+
+function AttendanceTable({ attendance }: { attendance?: AttendanceRecord[] }) {
+  return (
+    <DataTable headers={["Staff", "Role", "PHC", "Date", "Status", "Footfall"]}>
+      {attendance?.length ? (
+        attendance.slice(0, MAX_ATTENDANCE_ROWS).map((a) => (
+          <tr
+            key={a._id}
+            className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors"
+          >
+            <td className="px-4 py-3 text-slate-800 font-medium">{a.staffName}</td>
+            <td className="px-4 py-3 text-slate-600 capitalize">{a.role}</td>
+            <td className="px-4 py-3 text-slate-600">{a.phc?.name ?? "—"}</td>
+            <td className="px-4 py-3 text-slate-600">{new Date(a.date).toLocaleDateString()}</td>
+            <td className="px-4 py-3">
+              <span
+                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                  a.present ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                }`}
+              >
+                {a.present ? "Present" : "Absent"}
+              </span>
+            </td>
+            <td className="px-4 py-3 text-slate-600">{a.patientFootfall}</td>
+          </tr>
+        ))
+      ) : (
+        <EmptyRow colSpan={6}>No attendance records yet.</EmptyRow>
+      )}
+    </DataTable>
+  );
+}
+
 export default function Dashboard() {
-  const [lang, setLang] = useState<"en" | "hi">("en");
+  const [lang, setLang] = useState<Lang>("en");
+  const poll = { refetchInterval: POLL_MS };
 
   const { data: phcs, isLoading: phcsLoading, isError: phcsError } = useQuery({
     queryKey: ["phcs"],
     queryFn: fetchAllPHCs,
-    refetchInterval: 15000,
+    ...poll,
   });
-
   const { data: alerts, isLoading: alertsLoading, isError: alertsError } = useQuery({
     queryKey: ["alerts", lang],
     queryFn: () => fetchAlerts(lang),
-    refetchInterval: 15000,
+    ...poll,
   });
-
   const { data: redistribution, isLoading: redistLoading, isError: redistError } = useQuery({
     queryKey: ["redistribution", lang],
     queryFn: () => fetchRedistribution(lang),
-    refetchInterval: 15000,
+    ...poll,
   });
-
   const { data: stock, isLoading: stockLoading } = useQuery({
     queryKey: ["stock"],
     queryFn: fetchAllStock,
-    refetchInterval: 15000,
+    ...poll,
   });
-
   const { data: attendance } = useQuery({
     queryKey: ["attendance"],
     queryFn: fetchAllAttendance,
-    refetchInterval: 15000,
+    ...poll,
   });
-
   const { data: riskScores, isLoading: riskLoading } = useQuery({
     queryKey: ["risk", lang],
     queryFn: () => fetchRiskScores(lang),
-    refetchInterval: 15000,
+    ...poll,
   });
 
-  const [expandedStockId, setExpandedStockId] = useState<string | null>(null);
+  const phcCountByState = countBy(phcs, (p) => p.state);
+  const alertCountByState = countBy(alerts, (a) => a.stateName);
+  const states = Array.from(phcCountByState, ([name, phcCount]) => ({
+    name,
+    phcCount,
+    alertCount: alertCountByState.get(name) ?? 0,
+  }));
 
-  const { data: trendData, isLoading: trendLoading } = useQuery({
-    queryKey: ["stockTrend", expandedStockId],
-    queryFn: () => fetchStockTrend(expandedStockId as string),
-    enabled: !!expandedStockId,
-  });
-
-  const stateMap = new Map<string, { name: string; phcCount: number }>();
-  phcs?.forEach((phc) => {
-    const stateName = phc.state;
-    if (!stateName) return;
-    const existing = stateMap.get(stateName) || { name: stateName, phcCount: 0 };
-    existing.phcCount += 1;
-    stateMap.set(stateName, existing);
-  });
-
-  const alertsByState = new Map<string, number>();
-  alerts?.forEach((a) => {
-    alertsByState.set(a.stateName, (alertsByState.get(a.stateName) || 0) + 1);
-  });
-
-  const bedTotals = phcs?.reduce(
+  const beds = (phcs ?? []).reduce(
     (acc, p) => ({
       total: acc.total + (p.totalBeds ?? 0),
       occupied: acc.occupied + (p.occupiedBeds ?? 0),
     }),
-    { total: 0, occupied: 0 }
-  ) ?? { total: 0, occupied: 0 };
+    { total: 0, occupied: 0 },
+  );
 
   const isLoading = phcsLoading || alertsLoading || redistLoading || stockLoading;
   const hasError = phcsError || alertsError || redistError;
@@ -97,28 +290,21 @@ export default function Dashboard() {
               <Globe2 size={18} className="text-slate-400" />
               Regional Overview
             </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Live across {stateMap.size} states
-            </p>
+            <p className="text-sm text-slate-500 mt-0.5">Live across {states.length} states</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex bg-slate-100 rounded-lg p-1">
-              <button
-                onClick={() => setLang("en")}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                  lang === "en" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-                }`}
-              >
-                EN
-              </button>
-              <button
-                onClick={() => setLang("hi")}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                  lang === "hi" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-                }`}
-              >
-                हिं
-              </button>
+              {LANGS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setLang(value)}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    lang === value ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
             {isLoading && (
               <span className="flex items-center gap-2 text-xs text-slate-400">
@@ -133,85 +319,39 @@ export default function Dashboard() {
       <div className="max-w-5xl mx-auto p-6">
         {hasError && (
           <div className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3 mb-6 border border-red-100">
-            Couldn't load some data from the server. Check that the backend is running and try refreshing.
+            Couldn't load some data from the server. Check that the backend is running and try
+            refreshing.
           </div>
         )}
 
         <div className="grid grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-slate-50 rounded-full -mr-8 -mt-8" />
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center">
-                  <Building2 size={14} className="text-slate-600" />
-                </div>
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total PHCs</span>
-              </div>
-              <div className="text-3xl font-semibold text-slate-900">{phcs?.length ?? "—"}</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-red-50 rounded-full -mr-8 -mt-8" />
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 bg-red-50 rounded-lg flex items-center justify-center">
-                  <AlertTriangle size={14} className="text-red-500" />
-                </div>
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Low-stock Alerts</span>
-              </div>
-              <div className="text-3xl font-semibold text-red-500">{alerts?.length ?? "—"}</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-amber-50 rounded-full -mr-8 -mt-8" />
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 bg-amber-50 rounded-lg flex items-center justify-center">
-                  <ArrowLeftRight size={14} className="text-amber-500" />
-                </div>
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Redistribution</span>
-              </div>
-              <div className="text-3xl font-semibold text-amber-500">{redistribution?.length ?? "—"}</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50 rounded-full -mr-8 -mt-8" />
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <BedDouble size={14} className="text-blue-500" />
-                </div>
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Bed Occupancy</span>
-              </div>
-              <div className="text-3xl font-semibold text-blue-500">
-                {bedTotals.total > 0 ? `${bedTotals.occupied}/${bedTotals.total}` : "—"}
-              </div>
-            </div>
-          </div>
+          <StatCard icon={Building2} label="Total PHCs" value={phcs?.length ?? "—"} tone="slate" />
+          <StatCard icon={AlertTriangle} label="Low-stock Alerts" value={alerts?.length ?? "—"} tone="red" />
+          <StatCard icon={ArrowLeftRight} label="Redistribution" value={redistribution?.length ?? "—"} tone="amber" />
+          <StatCard
+            icon={BedDouble}
+            label="Bed Occupancy"
+            value={beds.total > 0 ? `${beds.occupied}/${beds.total}` : "—"}
+            tone="blue"
+          />
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-sm font-semibold text-slate-800 mb-3">States</h2>
+        <section className="mb-8">
+          <SectionTitle>States</SectionTitle>
           <div className="grid grid-cols-3 gap-4">
-            {Array.from(stateMap.values()).map((s) => {
-              const alertCount = alertsByState.get(s.name) || 0;
+            {states.map(({ name, phcCount, alertCount }) => {
               const healthy = alertCount === 0;
               return (
                 <div
-                  key={s.name}
+                  key={name}
                   className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold text-slate-900">{s.name}</span>
-                    <span
-                      className={`w-2 h-2 rounded-full ${healthy ? "bg-emerald-400" : "bg-red-400"}`}
-                    />
+                    <span className="text-sm font-semibold text-slate-900">{name}</span>
+                    <span className={`w-2 h-2 rounded-full ${healthy ? "bg-emerald-400" : "bg-red-400"}`} />
                   </div>
                   <div className="flex justify-between items-center text-xs mb-3">
-                    <span className="text-slate-500">{s.phcCount} PHCs</span>
+                    <span className="text-slate-500">{phcCount} PHCs</span>
                     <span
                       className={`px-2 py-0.5 rounded-full font-medium ${
                         healthy ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
@@ -230,56 +370,27 @@ export default function Dashboard() {
               );
             })}
           </div>
-        </div>
+        </section>
 
-        <div className="mb-8">
-          <h2 className="text-sm font-semibold text-slate-800 mb-3">State Map</h2>
-          <PHCMap
-            states={Array.from(stateMap.values()).map((s) => ({
-              name: s.name,
-              phcCount: s.phcCount,
-              alertCount: alertsByState.get(s.name) || 0,
-            }))}
-          />
-        </div>
+        <section className="mb-8">
+          <SectionTitle>State Map</SectionTitle>
+          <PHCMap states={states} />
+        </section>
 
         <div className="grid grid-cols-2 gap-6 mb-8">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-800 mb-3">Recent AI Alerts</h2>
+          <section>
+            <SectionTitle>Recent AI Alerts</SectionTitle>
             <div className="flex flex-col gap-2">
               {alerts?.length ? (
-                alerts.map((a) => (
-                  <div
-                    key={a.id}
-                    className={`flex gap-3 items-start rounded-xl px-4 py-3 text-sm border ${
-                      a.status === "critical"
-                        ? "bg-red-50 text-red-700 border-red-100"
-                        : "bg-amber-50 text-amber-700 border-amber-100"
-                    }`}
-                  >
-                    <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                    <div className="flex flex-col gap-1">
-                      <span
-                        className={`text-xs font-semibold uppercase tracking-wide ${
-                          a.status === "critical" ? "text-red-600" : "text-amber-600"
-                        }`}
-                      >
-                        {formatDaysLeft(a.daysRemaining)}
-                      </span>
-                      <span>{a.message}</span>
-                    </div>
-                  </div>
-                ))
+                alerts.map((a) => <AlertCard key={a.id} alert={a} />)
               ) : (
-                <p className="text-sm text-slate-400 bg-white rounded-xl px-4 py-3 border border-slate-100">
-                  No active alerts.
-                </p>
+                <EmptyState>No active alerts.</EmptyState>
               )}
             </div>
-          </div>
+          </section>
 
-          <div>
-            <h2 className="text-sm font-semibold text-slate-800 mb-3">Redistribution Suggestions</h2>
+          <section>
+            <SectionTitle>Redistribution Suggestions</SectionTitle>
             <div className="flex flex-col gap-2">
               {redistribution?.length ? (
                 redistribution.map((r, i) => (
@@ -292,178 +403,35 @@ export default function Dashboard() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-slate-400 bg-white rounded-xl px-4 py-3 border border-slate-100">
-                  No suggestions at this time.
-                </p>
+                <EmptyState>No suggestions at this time.</EmptyState>
               )}
             </div>
-          </div>
+          </section>
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-            <Gauge size={14} className="text-slate-400" /> PHC Risk Scores
-          </h2>
+        <section className="mb-8">
+          <SectionTitle icon={<Gauge size={14} className="text-slate-400" />}>PHC Risk Scores</SectionTitle>
           <div className="grid grid-cols-1 gap-3">
             {riskLoading ? (
-              <p className="text-sm text-slate-400 bg-white rounded-xl px-4 py-3 border border-slate-100">
-                Calculating risk scores…
-              </p>
+              <EmptyState>Calculating risk scores…</EmptyState>
             ) : riskScores?.length ? (
-              riskScores.map((r) => {
-                const levelStyles =
-                  r.level === "critical"
-                    ? "bg-red-50 text-red-700 border-red-100"
-                    : r.level === "elevated"
-                    ? "bg-amber-50 text-amber-700 border-amber-100"
-                    : "bg-emerald-50 text-emerald-700 border-emerald-100";
-                const barColor =
-                  r.level === "critical"
-                    ? "bg-red-400"
-                    : r.level === "elevated"
-                    ? "bg-amber-400"
-                    : "bg-emerald-400";
-                return (
-                  <div
-                    key={r.phcId}
-                    className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-900">{r.phcName}</span>
-                        <span className="text-xs text-slate-400">{r.countryName}</span>
-                      </div>
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full border ${levelStyles}`}
-                      >
-                        {r.level} · {r.score}/100
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2">
-                      <div
-                        className={`h-full ${barColor}`}
-                        style={{ width: `${r.score}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-slate-500">{r.explanation}</p>
-                  </div>
-                );
-              })
+              riskScores.map((r) => <RiskCard key={r.phcId} risk={r} />)
             ) : (
-              <p className="text-sm text-slate-400 bg-white rounded-xl px-4 py-3 border border-slate-100">
-                No risk scores available yet.
-              </p>
+              <EmptyState>No risk scores available yet.</EmptyState>
             )}
           </div>
-        </div>
+        </section>
 
-        <div className="mb-8">
-          <h2 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-            <Pill size={14} className="text-slate-400" /> All Stock Entries
-          </h2>
+        <section className="mb-8">
+          <SectionTitle icon={<Pill size={14} className="text-slate-400" />}>All Stock Entries</SectionTitle>
           <p className="text-xs text-slate-400 mb-2">Click a row to see its projected depletion trend.</p>
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 text-left text-xs text-slate-500 uppercase tracking-wide bg-slate-50/50">
-                  <th className="px-4 py-3">Medicine</th>
-                  <th className="px-4 py-3">PHC</th>
-                  <th className="px-4 py-3">State</th>
-                  <th className="px-4 py-3">Quantity</th>
-                  <th className="px-4 py-3">Daily Use</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stock?.length ? (
-                  stock.map((s) => {
-                    const isExpanded = expandedStockId === s._id;
-                    return (
-                      <Fragment key={s._id}>
-                        <tr
-                          onClick={() => setExpandedStockId(isExpanded ? null : s._id)}
-                          className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors cursor-pointer"
-                        >
-                          <td className="px-4 py-3 text-slate-800 font-medium">{s.medicineName}</td>
-                          <td className="px-4 py-3 text-slate-600">{s.phc?.name ?? "—"}</td>
-                          <td className="px-4 py-3 text-slate-600">{s.phc?.state ?? "—"}</td>
-                          <td className="px-4 py-3 text-slate-800">{s.quantity} {s.unit}</td>
-                          <td className="px-4 py-3 text-slate-600">{s.dailyConsumptionRate}/day</td>
-                        </tr>
-                        {isExpanded && (
-                          <tr>
-                            <td colSpan={5} className="px-4 py-3 bg-white">
-                              {trendLoading ? (
-                                <p className="text-xs text-slate-400">Loading trend…</p>
-                              ) : trendData ? (
-                                <StockTrendChart trend={trendData.trend} unit={trendData.unit} />
-                              ) : null}
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
-                      No stock entries yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <StockTable stock={stock} />
+        </section>
 
-        <div>
-          <h2 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-            <Users size={14} className="text-slate-400" /> Staff Attendance
-          </h2>
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 text-left text-xs text-slate-500 uppercase tracking-wide bg-slate-50/50">
-                  <th className="px-4 py-3">Staff</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">PHC</th>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Footfall</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attendance?.length ? (
-                  attendance.slice(0, 15).map((a) => (
-                    <tr key={a._id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
-                      <td className="px-4 py-3 text-slate-800 font-medium">{a.staffName}</td>
-                      <td className="px-4 py-3 text-slate-600 capitalize">{a.role}</td>
-                      <td className="px-4 py-3 text-slate-600">{a.phc?.name ?? "—"}</td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {new Date(a.date).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            a.present ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
-                          }`}
-                        >
-                          {a.present ? "Present" : "Absent"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">{a.patientFootfall}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
-                      No attendance records yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <section>
+          <SectionTitle icon={<Users size={14} className="text-slate-400" />}>Staff Attendance</SectionTitle>
+          <AttendanceTable attendance={attendance} />
+        </section>
       </div>
 
       <ChatWidget lang={lang} />

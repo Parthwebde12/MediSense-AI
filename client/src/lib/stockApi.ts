@@ -1,5 +1,82 @@
 import api from "./api";
 
+export type Lang = "en" | "hi";
+
+const get = async <T>(url: string, params?: object): Promise<T> =>
+  (await api.get<T>(url, { params })).data;
+const post = async <T = unknown>(url: string, body: object): Promise<T> =>
+  (await api.post<T>(url, body)).data;
+const remove = async <T = unknown>(url: string): Promise<T> =>
+  (await api.delete<T>(url)).data;
+
+export interface Country {
+  _id: string;
+  name: string;
+  code: string;
+}
+
+export interface PHC {
+  _id: string;
+  name: string;
+  state?: string;
+  district?: string;
+  city?: string;
+  totalBeds?: number;
+  occupiedBeds?: number;
+}
+
+export interface NewPHCPayload {
+  name: string;
+  country: string;
+  state: string;
+  district: string;
+  city: string;
+  totalBeds?: number;
+  occupiedBeds?: number;
+}
+
+export const fetchAllCountries = () => get<Country[]>("/country");
+export const fetchAllPHCs = () => get<PHC[]>("/phc");
+export const createPHC = (payload: NewPHCPayload) => post("/phc", payload);
+export const deletePHC = (id: string) => remove(`/phc/${id}`);
+
+// ---- Stock ----
+
+export interface StockItem {
+  _id: string;
+  medicineName: string;
+  quantity: number;
+  unit: string;
+  dailyConsumptionRate: number;
+  phc?: PHC;
+}
+
+export interface NewStockPayload {
+  phc: string;
+  medicineName: string;
+  quantity: number;
+  unit: string;
+  dailyConsumptionRate: number;
+}
+
+export interface StockTrendPoint {
+  day: number;
+  quantity: number;
+}
+
+export interface StockTrendResponse {
+  medicineName: string;
+  unit: string;
+  dailyConsumptionRate: number;
+  trend: StockTrendPoint[];
+}
+
+export const fetchAllStock = () => get<StockItem[]>("/stock");
+export const createStock = (payload: NewStockPayload) => post("/stock", payload);
+export const fetchStockTrend = (id: string) =>
+  get<StockTrendResponse>(`/stock/${id}/trend`);
+
+
 export interface Alert {
   id: string;
   phcName: string;
@@ -21,93 +98,11 @@ export interface RedistributionSuggestion {
   message: string;
 }
 
-export const fetchAlerts = async (lang: "en" | "hi" = "en"): Promise<Alert[]> => {
-  const res = await api.get("/stock/alerts", { params: { lang } });
-  return res.data;
-};
+export const fetchAlerts = (lang: Lang = "en") =>
+  get<Alert[]>("/stock/alerts", { lang });
+export const fetchRedistribution = (lang: Lang = "en") =>
+  get<RedistributionSuggestion[]>("/stock/redistribution", { lang });
 
-export const fetchRedistribution = async (lang: "en" | "hi" = "en"): Promise<RedistributionSuggestion[]> => {
-  const res = await api.get("/stock/redistribution", { params: { lang } });
-  return res.data;
-};
-
-export interface PHC {
-  _id: string;
-  name: string;
-  state?: string;
-  district?: string;
-  city?: string;
-  totalBeds?: number;
-  occupiedBeds?: number;
-}
-
-export interface StockItem {
-  _id: string;
-  medicineName: string;
-  quantity: number;
-  unit: string;
-  dailyConsumptionRate: number;
-  phc?: PHC;
-}
-
-export const fetchAllStock = async (): Promise<StockItem[]> => {
-  const res = await api.get("/stock");
-  return res.data;
-};
-
-export const fetchAllPHCs = async (): Promise<PHC[]> => {
-  const res = await api.get("/phc");
-  return res.data;
-};
-
-export interface NewStockPayload {
-  phc: string;
-  medicineName: string;
-  quantity: number;
-  unit: string;
-  dailyConsumptionRate: number;
-}
-
-export const createStock = async (payload: NewStockPayload) => {
-  const res = await api.post("/stock", payload);
-  return res.data;
-};
-
-export interface NewPHCPayload {
-  name: string;
-  country: string;
-  state: string;
-  district: string;
-  city: string;
-  totalBeds?: number;
-  occupiedBeds?: number;
-}
-
-export const createPHC = async (payload: NewPHCPayload) => {
-  const res = await api.post("/phc", payload);
-  return res.data;
-};
-
-export const updatePHCBeds = async (id: string, totalBeds: number, occupiedBeds: number) => {
-  const res = await api.patch(`/phc/${id}/beds`, { totalBeds, occupiedBeds });
-  return res.data;
-};
-
-export interface Country {
-  _id: string;
-  name: string;
-  code: string;
-}
-
-export const fetchAllCountries = async (): Promise<Country[]> => {
-  const res = await api.get("/country");
-  return res.data;
-};
-
-export const deletePHC = async (id: string) => {
-  const res = await api.delete(`/phc/${id}`);
-  return res.data;
-};
 
 export interface AttendanceRecord {
   _id: string;
@@ -119,10 +114,19 @@ export interface AttendanceRecord {
   phc?: PHC;
 }
 
-export const fetchAllAttendance = async (): Promise<AttendanceRecord[]> => {
-  const res = await api.get("/attendance");
-  return res.data;
-};
+export interface NewAttendancePayload {
+  phc: string;
+  staffName: string;
+  role: string;
+  date?: string;
+  present: boolean;
+  patientFootfall: number;
+}
+
+export const fetchAllAttendance = () => get<AttendanceRecord[]>("/attendance");
+export const createAttendance = (payload: NewAttendancePayload) =>
+  post("/attendance", payload);
+
 
 export interface RiskScore {
   phcId: string;
@@ -133,43 +137,9 @@ export interface RiskScore {
   explanation: string;
 }
 
-export const fetchRiskScores = async (lang: "en" | "hi" = "en"): Promise<RiskScore[]> => {
-  const res = await api.get("/risk", { params: { lang } });
-  return res.data;
-};
+export const fetchRiskScores = (lang: Lang = "en") =>
+  get<RiskScore[]>("/risk", { lang });
 
-export interface NewAttendancePayload {
-  phc: string;
-  staffName: string;
-  role: string;
-  date?: string;
-  present: boolean;
-  patientFootfall: number;
-}
 
-export const createAttendance = async (payload: NewAttendancePayload) => {
-  const res = await api.post("/attendance", payload);
-  return res.data;
-};
-
-export interface StockTrendPoint {
-  day: number;
-  quantity: number;
-}
-
-export interface StockTrendResponse {
-  medicineName: string;
-  unit: string;
-  dailyConsumptionRate: number;
-  trend: StockTrendPoint[];
-}
-
-export const fetchStockTrend = async (id: string): Promise<StockTrendResponse> => {
-  const res = await api.get(`/stock/${id}/trend`);
-  return res.data;
-};
-
-export const sendChatMessage = async (message: string, lang: "en" | "hi" = "en"): Promise<string> => {
-  const res = await api.post("/chat", { message, lang });
-  return res.data.reply;
-};
+export const sendChatMessage = async (message: string, lang: Lang = "en") =>
+  (await post<{ reply: string }>("/chat", { message, lang })).reply;

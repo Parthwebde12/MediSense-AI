@@ -11,41 +11,30 @@ export interface MapStateEntry {
 export default function PHCMap({ states }: { states: MapStateEntry[] }) {
   return (
     <div className="h-125 w-full rounded-xl overflow-hidden">
-      <MapContainer
-        center={[22.5, 80]}
-        zoom={5}
-        scrollWheelZoom={false}
-        className="h-full w-full"
-      >
+      <MapContainer center={[22.5, 80]} zoom={5} scrollWheelZoom={false} className="h-full w-full">
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
 
-        {states.map((state) => {
-          const coordinates = indiaStateCoordinates[state.name];
-
+        {states.map(({ name, phcCount, alertCount }) => {
+          const coordinates = indiaStateCoordinates[name];
           if (!coordinates) return null;
 
+          const color = alertCount > 0 ? "red" : "green";
           return (
             <CircleMarker
-              key={state.name}
+              key={name}
               center={coordinates}
-              radius={Math.max(
-                8,
-                Math.min(state.phcCount / 10, 30)
-              )}
-              pathOptions={{
-                color: state.alertCount > 0 ? "red" : "green",
-                fillColor: state.alertCount > 0 ? "red" : "green",
-                fillOpacity: 0.6,
-              }}
+              radius={Math.max(8, Math.min(phcCount / 10, 30))}
+              pathOptions={{ color, fillColor: color, fillOpacity: 0.6 }}
             >
               <Popup>
-                <strong>{state.name}</strong>
+                <strong>{name}</strong>
                 <br />
-                PHCs: {state.phcCount}
+                PHCs: {phcCount}
                 <br />
-                Alerts: {state.alertCount}
+                Alerts: {alertCount}
               </Popup>
             </CircleMarker>
           );

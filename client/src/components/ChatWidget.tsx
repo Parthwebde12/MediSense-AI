@@ -1,17 +1,14 @@
 import { useState } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
 import { sendChatMessage } from "../lib/stockApi";
+import type { Lang } from "../lib/stockApi";
 
 interface ChatMessage {
   role: "user" | "assistant";
   text: string;
 }
 
-interface ChatWidgetProps {
-  lang?: "en" | "hi";
-}
-
-export default function ChatWidget({ lang = "en" }: ChatWidgetProps) {
+export default function ChatWidget({ lang = "en" }: { lang?: Lang }) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);

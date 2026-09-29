@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Users } from "lucide-react";
 import { fetchAllPHCs, createAttendance } from "../lib/stockApi";
-import Navbar from "../components/Navbar";
-import { Link } from "react-router-dom";
-import { Users, ArrowLeft, Check } from "lucide-react";
+import { formCardClass, inputClass, labelClass, selectClass, submitClass } from "../lib/styles";
+import { useFlash } from "../lib/useFlash";
+import Banner from "../components/Banner";
+import FormPage from "../components/FormPage";
+import PhcSelect from "../components/PhcSelect";
+
+const ROLES = ["doctor", "nurse", "pharmacist"];
 
 export default function AddAttendance() {
   const queryClient = useQueryClient();
@@ -11,19 +16,18 @@ export default function AddAttendance() {
 
   const [phc, setPhc] = useState("");
   const [staffName, setStaffName] = useState("");
-  const [role, setRole] = useState("doctor");
+  const [role, setRole] = useState(ROLES[0]);
   const [present, setPresent] = useState(true);
   const [patientFootfall, setPatientFootfall] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [saved, flashSaved] = useFlash();
 
   const mutation = useMutation({
     mutationFn: createAttendance,
     onSuccess: () => {
-      setSuccess(true);
       setStaffName("");
       setPatientFootfall("");
       queryClient.invalidateQueries({ queryKey: ["attendance"] });
-      setTimeout(() => setSuccess(false), 3000);
+      flashSaved();
     },
   });
 
@@ -40,111 +44,69 @@ export default function AddAttendance() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
-      <div className="max-w-md mx-auto p-6">
-        <Link
-          to="/dashboard"
-          className="text-sm text-slate-500 hover:text-slate-900 transition-colors mb-6 inline-flex items-center gap-1.5"
-        >
-          <ArrowLeft size={16} /> Back to Dashboard
-        </Link>
+    <FormPage
+      icon={Users}
+      iconClassName="bg-purple-100 text-purple-600"
+      title="Add Attendance"
+      subtitle="Log staff attendance and patient footfall for a PHC."
+    >
+      {saved && <Banner variant="success">Attendance record added successfully.</Banner>}
 
-        <div className="mb-6">
-          <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mb-3">
-            <Users size={20} className="text-purple-600" />
-          </div>
-          <h1 className="text-xl font-semibold text-slate-900">Add Attendance</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Log staff attendance and patient footfall for a PHC.
-          </p>
+      <form onSubmit={handleSubmit} className={formCardClass}>
+        <PhcSelect value={phc} onChange={setPhc} phcs={phcs} />
+
+        <div>
+          <label className={labelClass}>Staff name</label>
+          <input
+            type="text"
+            value={staffName}
+            onChange={(e) => setStaffName(e.target.value)}
+            className={inputClass}
+            placeholder="e.g. Dr. Amara Okafor"
+            required
+          />
         </div>
 
-        {success && (
-          <div className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
-            <Check size={16} /> Attendance record added successfully.
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">PHC</label>
-            <select
-              value={phc}
-              onChange={(e) => setPhc(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
-              required
-            >
-              <option value="">Select a PHC</option>
-              {phcs?.map((p) => (
-                <option key={p._id} value={p._id}>
-                  {p.name} {p.state ? `(${p.state})` : ""}
+            <label className={labelClass}>Role</label>
+            <select value={role} onChange={(e) => setRole(e.target.value)} className={selectClass}>
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {r}
                 </option>
               ))}
             </select>
           </div>
-
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Staff name</label>
-            <input
-              type="text"
-              value={staffName}
-              onChange={(e) => setStaffName(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
-              placeholder="e.g. Dr. Amara Okafor"
-              required
-            />
+            <label className={labelClass}>Status</label>
+            <select
+              value={present ? "present" : "absent"}
+              onChange={(e) => setPresent(e.target.value === "present")}
+              className={selectClass}
+            >
+              <option value="present">Present</option>
+              <option value="absent">Absent</option>
+            </select>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">Role</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
-              >
-                <option value="doctor">doctor</option>
-                <option value="nurse">nurse</option>
-                <option value="pharmacist">pharmacist</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">Status</label>
-              <select
-                value={present ? "present" : "absent"}
-                onChange={(e) => setPresent(e.target.value === "present")}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
-              >
-                <option value="present">Present</option>
-                <option value="absent">Absent</option>
-              </select>
-            </div>
-          </div>
+        <div>
+          <label className={labelClass}>Patient footfall (today)</label>
+          <input
+            type="number"
+            value={patientFootfall}
+            onChange={(e) => setPatientFootfall(e.target.value)}
+            className={inputClass}
+            min="0"
+            placeholder="e.g. 24"
+          />
+        </div>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">
-              Patient footfall (today)
-            </label>
-            <input
-              type="number"
-              value={patientFootfall}
-              onChange={(e) => setPatientFootfall(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
-              min="0"
-              placeholder="e.g. 24"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={mutation.isPending}
-            className="w-full bg-slate-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-50 mt-2"
-          >
-            {mutation.isPending ? "Adding…" : "Add attendance record"}
-          </button>
-        </form>
-      </div>
-    </div>
+        <button type="submit" disabled={mutation.isPending} className={submitClass}>
+          {mutation.isPending ? "Adding…" : "Add attendance record"}
+        </button>
+      </form>
+    </FormPage>
   );
 }

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../lib/api";
-import { useAuth } from "../context/Authcontext";
 import { HeartPulse, Globe2, Sparkles } from "lucide-react";
+import api from "../lib/api";
+import { useAuth } from "../context/useAuth";
+import { inputClass, labelClass } from "../lib/styles";
 
 const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
 const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined;
+const hasDemo = Boolean(DEMO_EMAIL && DEMO_PASSWORD);
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -31,9 +33,9 @@ export default function Login() {
   };
 
   const fillDemo = () => {
-  setEmail(DEMO_EMAIL ?? "");
-  setPassword(DEMO_PASSWORD ?? "");
-};
+    setEmail(DEMO_EMAIL ?? "");
+    setPassword(DEMO_PASSWORD ?? "");
+  };
 
   return (
     <div className="min-h-screen flex">
@@ -57,8 +59,8 @@ export default function Login() {
             before they happen.
           </h1>
           <p className="text-slate-400 text-base max-w-md">
-            An AI-powered platform that forecasts medicine stock-outs and
-            recommends cross-border redistribution across health centres.
+            An AI-powered platform that forecasts medicine stock-outs and recommends cross-border
+            redistribution across health centres.
           </p>
         </div>
 
@@ -95,21 +97,21 @@ export default function Login() {
               <p className="text-red-600 text-sm mb-4 bg-red-50 rounded-lg px-3 py-2">{error}</p>
             )}
 
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Email</label>
+            <label className={labelClass}>Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
+              className={`${inputClass} mb-4`}
               required
             />
 
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Password</label>
+            <label className={labelClass}>Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2.5 mb-6 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
+              className={`${inputClass} mb-6`}
               required
             />
 
@@ -122,19 +124,23 @@ export default function Login() {
             </button>
           </form>
 
-          
-  <button
-    type="button"
-    onClick={fillDemo}
-    className="mt-4 w-full text-left bg-white border border-slate-100 rounded-2xl px-4 py-3 text-xs text-slate-500 hover:border-slate-200 hover:shadow-sm transition-all"
-  >
-    <p className="font-medium text-slate-700 mb-1.5 flex items-center gap-1.5">
-      <Sparkles size={13} /> Try the demo account
-    </p>
-    <p>Email: <span className="font-mono text-slate-700">{DEMO_EMAIL}</span></p>
-    <p>Password: <span className="font-mono text-slate-700">{DEMO_PASSWORD}</span></p>
-  </button>
-
+          {hasDemo && (
+            <button
+              type="button"
+              onClick={fillDemo}
+              className="mt-4 w-full text-left bg-white border border-slate-100 rounded-2xl px-4 py-3 text-xs text-slate-500 hover:border-slate-200 hover:shadow-sm transition-all"
+            >
+              <p className="font-medium text-slate-700 mb-1.5 flex items-center gap-1.5">
+                <Sparkles size={13} /> Try the demo account
+              </p>
+              <p>
+                Email: <span className="font-mono text-slate-700">{DEMO_EMAIL}</span>
+              </p>
+              <p>
+                Password: <span className="font-mono text-slate-700">{DEMO_PASSWORD}</span>
+              </p>
+            </button>
+          )}
         </div>
       </div>
     </div>
