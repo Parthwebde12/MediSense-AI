@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {fetchAllCountries,createPHC,fetchAllPHCs,deletePHC,} from "../lib/stockApi";
+import {fetchAllCountries,createPHC,fetchAllPHCs,deletePHC,updatePHCBeds} from "../lib/stockApi";
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
-import { Building2, ArrowLeft, Check, Trash2 } from "lucide-react";
+import { Building2, ArrowLeft, Check, Trash2, Pencil } from "lucide-react";
 import indiaStatesDistricts from "../data/indiaStatesDistricts.json";
 
 export default function AddPHC() {
@@ -20,6 +20,9 @@ export default function AddPHC() {
   const [totalBeds, setTotalBeds] = useState("");
   const [occupiedBeds, setOccupiedBeds] = useState("");
   const [success, setSuccess] = useState(false);
+
+  const [editingBedsId, setEditingBedsId] = useState<string | null>(null);
+  const [bedForm, setBedForm] = useState({ total: "", occupied: "" });
 
   const districtOptions = useMemo(() => {
     return indiaStatesDistricts.find((s) => s.name === state)?.districts ?? [];
@@ -49,6 +52,15 @@ export default function AddPHC() {
     },
   });
 
+  const bedsMutation = useMutation({
+    mutationFn: ({ id, total, occupied }: { id: string; total: number; occupied: number }) =>
+      updatePHCBeds(id, total, occupied),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["phcs"] });
+      setEditingBedsId(null);
+    },
+  });
+
   const handleDelete = (id: string, phcName: string) => {
     if (window.confirm(`Delete "${phcName}" and all its stock and attendance records?`)) {
       deletePhcMutation.mutate(id);
@@ -66,6 +78,22 @@ export default function AddPHC() {
       city,
       totalBeds: totalBeds ? Number(totalBeds) : 0,
       occupiedBeds: occupiedBeds ? Number(occupiedBeds) : 0,
+    });
+  };
+
+  const startEditingBeds = (p: { _id: string; totalBeds?: number; occupiedBeds?: number }) => {
+    setEditingBedsId(p._id);
+    setBedForm({
+      total: String(p.totalBeds ?? 0),
+      occupied: String(p.occupiedBeds ?? 0),
+    });
+  };
+
+  const saveBeds = (id: string) => {
+    bedsMutation.mutate({
+      id,
+      total: Number(bedForm.total) || 0,
+      occupied: Number(bedForm.occupied) || 0,
     });
   };
 
@@ -194,23 +222,67 @@ export default function AddPHC() {
           <div className="bg-white border border-slate-100 rounded-2xl shadow-sm divide-y divide-slate-50">
             {phcs?.length ? (
               phcs.map((p) => (
-                <div key={p._id} className="flex items-center justify-between px-4 py-3">
-                  <span className="text-sm text-slate-700">
-                    {p.name}{" "}
-                    <span className="text-slate-400">
-                      — {p.city ?? "—"}, {p.district ?? "—"}, {p.state ?? "Unknown"}
-                      {p.totalBeds !== undefined && (
-                        <> · {p.occupiedBeds ?? 0}/{p.totalBeds} beds</>
-                      )}
+                <div key={p._id} className="px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-700">
+                      {p.name}{" "}
+                      <span className="text-slate-400">
+                        — {p.city ?? "—"}, {p.district ?? "—"}, {p.state ?? "Unknown"}
+                        {p.totalBeds !== undefined && (
+                          <> · {p.occupiedBeds ?? 0}/{p.totalBeds} beds</>
+                        )}
+                      </span>
                     </span>
-                  </span>
-                  <button
-                    onClick={() => handleDelete(p._id, p.name)}
-                    disabled={deletePhcMutation.isPending}
-                    className="text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => startEditingBeds(p)}
+                        className="text-slate-400 hover:text-slate-700 transition-colors"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p._id, p.name)}
+                        disabled={deletePhcMutation.isPending}
+                        className="text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {editingBedsId === p._id && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={bedForm.total}
+                        onChange={(e) => setBedForm((f) => ({ ...f, total: e.target.value }))}
+                        placeholder="Total beds"
+                        className="w-24 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        value={bedForm.occupied}
+                        onChange={(e) => setBedForm((f) => ({ ...f, occupied: e.target.value }))}
+                        placeholder="Occupied"
+                        className="w-24 border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                      />
+                      <button
+                        onClick={() => saveBeds(p._id)}
+                        disabled={bedsMutation.isPending}
+                        className="text-xs bg-slate-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+                      >
+                        {bedsMutation.isPending ? "Saving…" : "Save"}
+                      </button>
+                      <button
+                        onClick={() => setEditingBedsId(null)}
+                        className="text-xs text-slate-400 hover:text-slate-600"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))
             ) : (
