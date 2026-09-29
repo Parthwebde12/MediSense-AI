@@ -6,6 +6,8 @@ export interface IPHC extends Document {
   state: string;
   district: string;
   city: string;
+  totalBeds: number;
+  occupiedBeds: number;
 }
 
 const PHCSchema = new Schema<IPHC>({
@@ -14,6 +16,8 @@ const PHCSchema = new Schema<IPHC>({
   state: { type: String, required: true },
   district: { type: String, required: true },
   city: { type: String, required: true },
+  totalBeds: { type: Number, default: 0, min: 0 },
+  occupiedBeds: { type: Number, default: 0, min: 0 },
 });
 
 export default mongoose.model<IPHC>("PHC", PHCSchema);

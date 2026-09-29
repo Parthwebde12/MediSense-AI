@@ -36,4 +36,30 @@ router.delete("/:id", requireAuth, requireRole("regional_admin"), async (req, re
   });
 });
 
+router.post("/", requireAuth, requireRole("regional_admin"), async (req, res) => {
+  const { name, country, state, district, city, totalBeds, occupiedBeds } = req.body;
+  if (!name || !country || !state || !district || !city) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+  const phc = await PHC.create({
+    name, country, state, district, city,
+    totalBeds: totalBeds ?? 0,
+    occupiedBeds: occupiedBeds ?? 0,
+  });
+  res.status(201).json(phc);
+});
+
+router.patch("/:id/beds", requireAuth, requireRole("regional_admin"), async (req, res) => {
+  const { totalBeds, occupiedBeds } = req.body;
+  if (totalBeds === undefined && occupiedBeds === undefined) {
+    return res.status(400).json({ error: "Provide totalBeds and/or occupiedBeds" });
+  }
+  const update: Record<string, number> = {};
+  if (totalBeds !== undefined) update.totalBeds = totalBeds;
+  if (occupiedBeds !== undefined) update.occupiedBeds = occupiedBeds;
+  const phc = await PHC.findByIdAndUpdate(req.params.id, update, { new: true });
+  if (!phc) return res.status(404).json({ error: "PHC not found" });
+  res.json(phc);
+});
+
 export default router;

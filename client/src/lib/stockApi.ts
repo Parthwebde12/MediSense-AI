@@ -37,6 +37,8 @@ export interface PHC {
   state?: string;
   district?: string;
   city?: string;
+  totalBeds?: number;
+  occupiedBeds?: number;
 }
 
 export interface StockItem {
@@ -77,10 +79,17 @@ export interface NewPHCPayload {
   state: string;
   district: string;
   city: string;
+  totalBeds?: number;
+  occupiedBeds?: number;
 }
 
 export const createPHC = async (payload: NewPHCPayload) => {
   const res = await api.post("/phc", payload);
+  return res.data;
+};
+
+export const updatePHCBeds = async (id: string, totalBeds: number, occupiedBeds: number) => {
+  const res = await api.patch(`/phc/${id}/beds`, { totalBeds, occupiedBeds });
   return res.data;
 };
 
@@ -94,8 +103,6 @@ export const fetchAllCountries = async (): Promise<Country[]> => {
   const res = await api.get("/country");
   return res.data;
 };
-
-
 
 export const deletePHC = async (id: string) => {
   const res = await api.delete(`/phc/${id}`);

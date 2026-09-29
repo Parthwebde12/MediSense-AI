@@ -17,6 +17,8 @@ export default function AddPHC() {
   const [state, setState] = useState("");
   const [district, setDistrict] = useState("");
   const [city, setCity] = useState("");
+  const [totalBeds, setTotalBeds] = useState("");
+  const [occupiedBeds, setOccupiedBeds] = useState("");
   const [success, setSuccess] = useState(false);
 
   const districtOptions = useMemo(() => {
@@ -31,6 +33,8 @@ export default function AddPHC() {
       setState("");
       setDistrict("");
       setCity("");
+      setTotalBeds("");
+      setOccupiedBeds("");
       queryClient.invalidateQueries({ queryKey: ["phcs"] });
       setTimeout(() => setSuccess(false), 3000);
     },
@@ -54,7 +58,15 @@ export default function AddPHC() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !india || !state || !district || !city) return;
-    mutation.mutate({ name, country: india._id, state, district, city });
+    mutation.mutate({
+      name,
+      country: india._id,
+      state,
+      district,
+      city,
+      totalBeds: totalBeds ? Number(totalBeds) : 0,
+      occupiedBeds: occupiedBeds ? Number(occupiedBeds) : 0,
+    });
   };
 
   return (
@@ -143,6 +155,31 @@ export default function AddPHC() {
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">Total beds</label>
+              <input
+                type="number"
+                min={0}
+                value={totalBeds}
+                onChange={(e) => setTotalBeds(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">Occupied beds</label>
+              <input
+                type="number"
+                min={0}
+                value={occupiedBeds}
+                onChange={(e) => setOccupiedBeds(e.target.value)}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 transition-shadow"
+                placeholder="0"
+              />
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={mutation.isPending}
@@ -162,6 +199,9 @@ export default function AddPHC() {
                     {p.name}{" "}
                     <span className="text-slate-400">
                       — {p.city ?? "—"}, {p.district ?? "—"}, {p.state ?? "Unknown"}
+                      {p.totalBeds !== undefined && (
+                        <> · {p.occupiedBeds ?? 0}/{p.totalBeds} beds</>
+                      )}
                     </span>
                   </span>
                   <button

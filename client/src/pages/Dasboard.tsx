@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {fetchAlerts, fetchRedistribution, fetchAllPHCs,fetchAllStock, fetchAllAttendance, fetchRiskScores, fetchStockTrend} from "../lib/stockApi";
 import Navbar from "../components/Navbar";
 import StockTrendChart from "../components/StockTrendChart";
-import { Building2, AlertTriangle, ArrowLeftRight, Pill, Globe2, Users, Gauge } from "lucide-react";
+import { Building2, AlertTriangle, ArrowLeftRight, Pill, Globe2, Users, Gauge, BedDouble } from "lucide-react";
 import { useState, Fragment } from "react";
 import ChatWidget from "../components/ChatWidget";
 import PHCMap from "../components/PHCMap";
@@ -73,6 +73,14 @@ export default function Dashboard() {
     alertsByState.set(a.stateName, (alertsByState.get(a.stateName) || 0) + 1);
   });
 
+  const bedTotals = phcs?.reduce(
+    (acc, p) => ({
+      total: acc.total + (p.totalBeds ?? 0),
+      occupied: acc.occupied + (p.occupiedBeds ?? 0),
+    }),
+    { total: 0, occupied: 0 }
+  ) ?? { total: 0, occupied: 0 };
+
   const isLoading = phcsLoading || alertsLoading || redistLoading || stockLoading;
   const hasError = phcsError || alertsError || redistError;
 
@@ -107,7 +115,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-slate-50 rounded-full -mr-8 -mt-8" />
             <div className="relative">
@@ -144,6 +152,21 @@ export default function Dashboard() {
                 <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Redistribution</span>
               </div>
               <div className="text-3xl font-semibold text-amber-500">{redistribution?.length ?? "—"}</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50 rounded-full -mr-8 -mt-8" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <BedDouble size={14} className="text-blue-500" />
+                </div>
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Bed Occupancy</span>
+              </div>
+              <div className="text-3xl font-semibold text-blue-500">
+                {bedTotals.total > 0 ? `${bedTotals.occupied}/${bedTotals.total}` : "—"}
+              </div>
             </div>
           </div>
         </div>
