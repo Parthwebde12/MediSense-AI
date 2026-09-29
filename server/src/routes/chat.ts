@@ -9,13 +9,14 @@ import { chatLimiter } from "../middleware/ratelimit";
 const router = Router();
 
 router.post("/", requireAuth, chatLimiter, async (req, res) => {
-  const { message } = req.body;
+  const { message, lang } = req.body;
   if (!message || typeof message !== "string") {
     return res.status(400).json({ error: "message is required" });
   }
   if (message.length > 500) {
     return res.status(400).json({ error: "message too long (max 500 chars)" });
   }
+  const responseLang = lang === "hi" ? "hi" : "en";
 
   const stock = (await MedicineStock.find().populate("phc")).filter(
     (item: any) => item.phc,
@@ -64,7 +65,12 @@ ${redistLines.length ? redistLines.join("\n") : "None."}`;
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
 
-  const prompt = `You are an assistant embedded in a hospital supply-chain dashboard called MediSense AI. Answer the admin's question using ONLY the data below. Be concise (under 80 words), direct, and specific. If the data doesn't cover the question, say so plainly.
+  const languageInstruction =
+    responseLang === "hi"
+      ? "Respond in Hindi (Devanagari script)."
+      : "Respond in English.";
+
+  const prompt = `You are an assistant embedded in a hospital supply-chain dashboard called MediSense AI. Answer the admin's question using ONLY the data below. Be concise (under 80 words), direct, and specific. If the data doesn't cover the question, say so plainly. ${languageInstruction}
 
 ${context}
 

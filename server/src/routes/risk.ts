@@ -4,14 +4,16 @@ import PHC from "../models/PHC";
 import MedicineStock from "../models/MedicineStock";
 import Attendance from "../models/Attendance";
 import { calculateDepletion, calculateRiskScore } from "../utils/forecast";
-import { generateRiskExplanation } from "../utils/gemini";
+import { generateRiskExplanation, Lang } from "../utils/gemini";
 import { requireAuth } from "../middleware/auth";
 import { aiLimiter } from "../middleware/ratelimit";
 
 const router = Router();
 
 const CACHE_TTL_MS = 60_000;
-let cache: { at: number; data: unknown[] } | null = null;
+let cache: { at: number; lang: Lang; data: unknown[] } | null = null;
+
+const parseLang = (v: unknown): Lang => (v === "hi" ? "hi" : "en");
 
 const getRiskScore = async (minDaysRemaining: number, attendanceRate: number) => {
   try {
@@ -24,8 +26,10 @@ const getRiskScore = async (minDaysRemaining: number, attendanceRate: number) =>
   }
 };
 
-router.get("/", requireAuth, aiLimiter, async (_req, res) => {
-  if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+router.get("/", requireAuth, aiLimiter, async (req, res) => {
+  const lang = parseLang(req.query.lang);
+
+  if (cache && cache.lang === lang && Date.now() - cache.at < CACHE_TTL_MS) {
     return res.json(cache.data);
   }
 
@@ -59,14 +63,14 @@ router.get("/", requireAuth, aiLimiter, async (_req, res) => {
     const countryName = phc.country.name;
     let explanation = `Risk score ${score}/100 based on stock and staffing levels.`;
     try {
-      explanation = await generateRiskExplanation(phc.name, countryName, score, days, attendanceRate);
+      explanation = await generateRiskExplanation(phc.name, countryName, score, days, attendanceRate, lang);
     } catch (err) {
       console.error("Gemini risk explanation failed, using fallback:", err);
     }
     results.push({ phcId: phc._id, phcName: phc.name, countryName, score, level, explanation });
   }
 
-  cache = { at: Date.now(), data: results };
+  cache = { at: Date.now(), lang, data: results };
   res.json(results);
 });
 

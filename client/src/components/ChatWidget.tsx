@@ -7,7 +7,11 @@ interface ChatMessage {
   text: string;
 }
 
-export default function ChatWidget() {
+interface ChatWidgetProps {
+  lang?: "en" | "hi";
+}
+
+export default function ChatWidget({ lang = "en" }: ChatWidgetProps) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -22,7 +26,7 @@ export default function ChatWidget() {
     setLoading(true);
 
     try {
-      const reply = await sendChatMessage(trimmed);
+      const reply = await sendChatMessage(trimmed, lang);
       setMessages((prev) => [...prev, { role: "assistant", text: reply }]);
     } catch {
       setMessages((prev) => [

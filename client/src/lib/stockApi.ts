@@ -21,13 +21,13 @@ export interface RedistributionSuggestion {
   message: string;
 }
 
-export const fetchAlerts = async (): Promise<Alert[]> => {
-  const res = await api.get("/stock/alerts");
+export const fetchAlerts = async (lang: "en" | "hi" = "en"): Promise<Alert[]> => {
+  const res = await api.get("/stock/alerts", { params: { lang } });
   return res.data;
 };
 
-export const fetchRedistribution = async (): Promise<RedistributionSuggestion[]> => {
-  const res = await api.get("/stock/redistribution");
+export const fetchRedistribution = async (lang: "en" | "hi" = "en"): Promise<RedistributionSuggestion[]> => {
+  const res = await api.get("/stock/redistribution", { params: { lang } });
   return res.data;
 };
 
@@ -133,8 +133,8 @@ export interface RiskScore {
   explanation: string;
 }
 
-export const fetchRiskScores = async (): Promise<RiskScore[]> => {
-  const res = await api.get("/risk");
+export const fetchRiskScores = async (lang: "en" | "hi" = "en"): Promise<RiskScore[]> => {
+  const res = await api.get("/risk", { params: { lang } });
   return res.data;
 };
 
@@ -169,7 +169,7 @@ export const fetchStockTrend = async (id: string): Promise<StockTrendResponse> =
   return res.data;
 };
 
-export const sendChatMessage = async (message: string): Promise<string> => {
-  const res = await api.post("/chat", { message });
+export const sendChatMessage = async (message: string, lang: "en" | "hi" = "en"): Promise<string> => {
+  const res = await api.post("/chat", { message, lang });
   return res.data.reply;
 };

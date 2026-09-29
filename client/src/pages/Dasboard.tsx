@@ -15,6 +15,8 @@ function formatDaysLeft(daysRemaining: number): string {
 }
 
 export default function Dashboard() {
+  const [lang, setLang] = useState<"en" | "hi">("en");
+
   const { data: phcs, isLoading: phcsLoading, isError: phcsError } = useQuery({
     queryKey: ["phcs"],
     queryFn: fetchAllPHCs,
@@ -22,14 +24,14 @@ export default function Dashboard() {
   });
 
   const { data: alerts, isLoading: alertsLoading, isError: alertsError } = useQuery({
-    queryKey: ["alerts"],
-    queryFn: fetchAlerts,
+    queryKey: ["alerts", lang],
+    queryFn: () => fetchAlerts(lang),
     refetchInterval: 15000,
   });
 
   const { data: redistribution, isLoading: redistLoading, isError: redistError } = useQuery({
-    queryKey: ["redistribution"],
-    queryFn: fetchRedistribution,
+    queryKey: ["redistribution", lang],
+    queryFn: () => fetchRedistribution(lang),
     refetchInterval: 15000,
   });
 
@@ -46,8 +48,8 @@ export default function Dashboard() {
   });
 
   const { data: riskScores, isLoading: riskLoading } = useQuery({
-    queryKey: ["risk"],
-    queryFn: fetchRiskScores,
+    queryKey: ["risk", lang],
+    queryFn: () => fetchRiskScores(lang),
     refetchInterval: 15000,
   });
 
@@ -99,12 +101,32 @@ export default function Dashboard() {
               Live across {stateMap.size} states
             </p>
           </div>
-          {isLoading && (
-            <span className="flex items-center gap-2 text-xs text-slate-400">
-              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-              Live
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            <div className="flex bg-slate-100 rounded-lg p-1">
+              <button
+                onClick={() => setLang("en")}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  lang === "en" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+                }`}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => setLang("hi")}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  lang === "hi" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+                }`}
+              >
+                हिं
+              </button>
+            </div>
+            {isLoading && (
+              <span className="flex items-center gap-2 text-xs text-slate-400">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                Live
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -444,7 +466,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <ChatWidget />
+      <ChatWidget lang={lang} />
     </div>
   );
 }

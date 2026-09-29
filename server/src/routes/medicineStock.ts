@@ -2,7 +2,7 @@ import { Router } from "express";
 import MedicineStock from "../models/MedicineStock";
 import { calculateDepletion } from "../utils/forecast";
 import { findRedistributionMatches } from "../utils/redistribution";
-import { generateAlertText, generateRedistributionText } from "../utils/gemini";
+import { generateAlertText, generateRedistributionText, Lang } from "../utils/gemini";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { aiLimiter } from "../middleware/ratelimit";
 
@@ -10,6 +10,8 @@ const router = Router();
 
 const alertMessageCache = new Map<string, { daysRemaining: number; message: string }>();
 const redistributionMessageCache = new Map<string, string>();
+
+const parseLang = (v: unknown): Lang => (v === "hi" ? "hi" : "en");
 
 router.get("/", requireAuth, async (req, res) => {
   const phc = req.query.phc as string | undefined;
@@ -58,6 +60,7 @@ router.patch(
 
 router.get("/alerts", requireAuth, aiLimiter, async (req, res) => {
   const state = req.query.state as string | undefined;
+  const lang = parseLang(req.query.lang);
   const stock = (await MedicineStock.find().populate("phc")).filter(
     (s: any) => s.phc,
   );
@@ -76,7 +79,7 @@ router.get("/alerts", requireAuth, aiLimiter, async (req, res) => {
 
   const alerts = [];
   for (const { item, daysRemaining, status } of risky) {
-    const cacheKey = item._id.toString();
+    const cacheKey = `${item._id.toString()}-${lang}`;
     const cached = alertMessageCache.get(cacheKey);
 
     let message = `${item.medicineName} at ${item.phc.name} will run out in ${daysRemaining} days.`;
@@ -89,6 +92,7 @@ router.get("/alerts", requireAuth, aiLimiter, async (req, res) => {
           item.phc.state,
           item.medicineName,
           daysRemaining,
+          lang,
         );
         alertMessageCache.set(cacheKey, { daysRemaining, message });
       } catch (err) {
@@ -111,7 +115,8 @@ router.get("/alerts", requireAuth, aiLimiter, async (req, res) => {
   res.json(alerts);
 });
 
-router.get("/redistribution", requireAuth, aiLimiter, async (_req, res) => {
+router.get("/redistribution", requireAuth, aiLimiter, async (req, res) => {
+  const lang = parseLang(req.query.lang);
   const stock = (await MedicineStock.find().populate("phc")).filter(
     (item: any) => item.phc,
   );
@@ -127,7 +132,7 @@ router.get("/redistribution", requireAuth, aiLimiter, async (_req, res) => {
 
   const suggestions = [];
   for (const match of findRedistributionMatches(stockItems).slice(0, 3)) {
-    const cacheKey = `${match.fromPhcName}-${match.toPhcName}-${match.medicineName}-${match.suggestedTransferAmount}`;
+    const cacheKey = `${match.fromPhcName}-${match.toPhcName}-${match.medicineName}-${match.suggestedTransferAmount}-${lang}`;
 
     let message =
       redistributionMessageCache.get(cacheKey) ??
@@ -142,6 +147,7 @@ router.get("/redistribution", requireAuth, aiLimiter, async (_req, res) => {
           match.toPhcName,
           match.toState,
           match.suggestedTransferAmount,
+          lang,
         );
         redistributionMessageCache.set(cacheKey, message);
       } catch (err) {
