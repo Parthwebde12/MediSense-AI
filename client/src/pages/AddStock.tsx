@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchAllPHCs, createStock } from "../lib/stockApi";
 import type { PHC } from "../lib/stockApi";
