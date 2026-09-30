@@ -7,8 +7,7 @@ export interface IUser extends Document {
   email: string;
   passwordHash: string;
   role: UserRole;
-  phc?: Types.ObjectId; 
-  country?: Types.ObjectId; 
+  phc?: Types.ObjectId;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -18,7 +17,6 @@ const UserSchema = new Schema<IUser>(
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ["phc_staff", "regional_admin"], required: true },
     phc: { type: Schema.Types.ObjectId, ref: "PHC" },
-    country: { type: Schema.Types.ObjectId, ref: "Country" },
   },
   { timestamps: true }
 );

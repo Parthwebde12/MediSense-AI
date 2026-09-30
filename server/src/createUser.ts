@@ -6,7 +6,6 @@ import { hashPassword } from "./utils/auth";
 
 dotenv.config({ path: [".env.local", ".env"] });
 
-
 const args = process.argv.slice(2);
 const arg = (flag: string) => {
   const i = args.indexOf(`--${flag}`);

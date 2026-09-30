@@ -22,10 +22,24 @@ export const calculateDepletion = (
   return { daysRemaining, status };
 };
 
-export const calculateRiskScore = (minDaysRemaining: number, attendanceRate: number) => {
-  const stockRisk = minDaysRemaining <= 0 ? 100 : Math.max(0, 100 - minDaysRemaining * 8);
+// Local fallback for the Python risk service. Keep these in sync with python-service/main.py.
+const STOCK_WEIGHT = 0.65;
+const STAFF_WEIGHT = 0.35;
+const RISK_PER_DAY_LEFT = 8;
+const CRITICAL_THRESHOLD = 65;
+const ELEVATED_THRESHOLD = 35;
+
+export type RiskLevel = "critical" | "elevated" | "stable";
+
+export const calculateRiskScore = (
+  minDaysRemaining: number,
+  attendanceRate: number
+): { score: number; level: RiskLevel } => {
+  const stockRisk =
+    minDaysRemaining <= 0 ? 100 : Math.max(0, 100 - minDaysRemaining * RISK_PER_DAY_LEFT);
   const staffRisk = Math.max(0, 100 - attendanceRate * 100);
-  const score = Math.round(stockRisk * 0.65 + staffRisk * 0.35);
-  const level = score >= 65 ? "critical" : score >= 35 ? "elevated" : "stable";
-  return { score, level } as { score: number; level: "critical" | "elevated" | "stable" };
+  const score = Math.round(stockRisk * STOCK_WEIGHT + staffRisk * STAFF_WEIGHT);
+  const level =
+    score >= CRITICAL_THRESHOLD ? "critical" : score >= ELEVATED_THRESHOLD ? "elevated" : "stable";
+  return { score, level };
 };

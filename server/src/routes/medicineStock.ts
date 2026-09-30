@@ -2,80 +2,66 @@ import { Router } from "express";
 import MedicineStock from "../models/MedicineStock";
 import { calculateDepletion } from "../utils/forecast";
 import { findRedistributionMatches } from "../utils/redistribution";
-import { generateAlertText, generateRedistributionText, Lang } from "../utils/gemini";
+import { findStockWithPhc, toStockItems } from "../utils/stock";
+import { generateAlertText, generateRedistributionText, parseLang } from "../utils/gemini";
+import { isNonNegativeNumber } from "../utils/validate";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { aiLimiter } from "../middleware/ratelimit";
 
 const router = Router();
 
+const MAX_ALERTS = 3;
+const MAX_SUGGESTIONS = 3;
+const TREND_DAYS = 14;
+
 const alertMessageCache = new Map<string, { daysRemaining: number; message: string }>();
 const redistributionMessageCache = new Map<string, string>();
 
-const parseLang = (v: unknown): Lang => (v === "hi" ? "hi" : "en");
-
 router.get("/", requireAuth, async (req, res) => {
-  const phc = req.query.phc as string | undefined;
-  const stock = await MedicineStock.find(phc ? { phc } : {}).populate("phc");
-  res.json(stock.filter((item) => item.phc));
+  res.json(await findStockWithPhc(req.query.phc as string | undefined));
 });
 
-router.post(
-  "/",
-  requireAuth,
-  requireRole("regional_admin"),
-  async (req, res) => {
-    const { phc, medicineName, quantity, unit, dailyConsumptionRate } =
-      req.body;
-    if (!phc || !medicineName || quantity === undefined || !unit) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-    const stock = await MedicineStock.create({
-      phc,
-      medicineName,
-      quantity,
-      unit,
-      dailyConsumptionRate,
-    });
-    res.status(201).json(stock);
-  },
-);
+router.post("/", requireAuth, requireRole("regional_admin"), async (req, res) => {
+  const { phc, medicineName, quantity, unit, dailyConsumptionRate } = req.body;
+  if (!phc || !medicineName || quantity === undefined || !unit) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+  if (
+    !isNonNegativeNumber(quantity) ||
+    (dailyConsumptionRate !== undefined && !isNonNegativeNumber(dailyConsumptionRate))
+  ) {
+    return res.status(400).json({ error: "Quantity and daily consumption must be non-negative numbers" });
+  }
+  const stock = await MedicineStock.create({ phc, medicineName, quantity, unit, dailyConsumptionRate });
+  res.status(201).json(stock);
+});
 
-router.patch(
-  "/:id",
-  requireAuth,
-  requireRole("regional_admin"),
-  async (req, res) => {
-    const { quantity } = req.body;
-    const stock = await MedicineStock.findByIdAndUpdate(
-      req.params.id,
-      { quantity, lastRestockedAt: Date.now() },
-      { new: true },
-    );
-    if (!stock) {
-      return res.status(404).json({ error: "Stock record not found" });
-    }
-    res.json(stock);
-  },
-);
+router.patch("/:id", requireAuth, requireRole("regional_admin"), async (req, res) => {
+  const { quantity } = req.body;
+  if (!isNonNegativeNumber(quantity)) {
+    return res.status(400).json({ error: "quantity must be a non-negative number" });
+  }
+  const stock = await MedicineStock.findByIdAndUpdate(
+    req.params.id,
+    { quantity, lastRestockedAt: Date.now() },
+    { new: true },
+  );
+  if (!stock) {
+    return res.status(404).json({ error: "Stock record not found" });
+  }
+  res.json(stock);
+});
 
 router.get("/alerts", requireAuth, aiLimiter, async (req, res) => {
   const state = req.query.state as string | undefined;
   const lang = parseLang(req.query.lang);
-  const stock = (await MedicineStock.find().populate("phc")).filter(
-    (s: any) => s.phc,
-  );
-  const filtered = state
-    ? stock.filter((s: any) => s.phc.state === state)
-    : stock;
+  const stock = (await findStockWithPhc()).filter((s) => !state || s.phc.state === state);
 
-  const risky = filtered
-    .map((item: any) => ({
-      item,
-      ...calculateDepletion(item.quantity, item.dailyConsumptionRate),
-    }))
+  const risky = stock
+    .map((item) => ({ item, ...calculateDepletion(item.quantity, item.dailyConsumptionRate) }))
     .filter((a) => a.status !== "healthy")
     .sort((a, b) => a.daysRemaining - b.daysRemaining)
-    .slice(0, 3);
+    .slice(0, MAX_ALERTS);
 
   const alerts = [];
   for (const { item, daysRemaining, status } of risky) {
@@ -117,21 +103,10 @@ router.get("/alerts", requireAuth, aiLimiter, async (req, res) => {
 
 router.get("/redistribution", requireAuth, aiLimiter, async (req, res) => {
   const lang = parseLang(req.query.lang);
-  const stock = (await MedicineStock.find().populate("phc")).filter(
-    (item: any) => item.phc,
-  );
-
-  const stockItems = stock.map((item: any) => ({
-    phcId: item.phc._id.toString(),
-    phcName: item.phc.name,
-    state: item.phc.state,
-    medicineName: item.medicineName,
-    quantity: item.quantity,
-    dailyConsumptionRate: item.dailyConsumptionRate,
-  }));
+  const matches = findRedistributionMatches(toStockItems(await findStockWithPhc()));
 
   const suggestions = [];
-  for (const match of findRedistributionMatches(stockItems).slice(0, 3)) {
+  for (const match of matches.slice(0, MAX_SUGGESTIONS)) {
     const cacheKey = `${match.fromPhcName}-${match.toPhcName}-${match.medicineName}-${match.suggestedTransferAmount}-${lang}`;
 
     let message =
@@ -151,10 +126,7 @@ router.get("/redistribution", requireAuth, aiLimiter, async (req, res) => {
         );
         redistributionMessageCache.set(cacheKey, message);
       } catch (err) {
-        console.error(
-          "Gemini redistribution call failed, using fallback:",
-          err,
-        );
+        console.error("Gemini redistribution call failed, using fallback:", err);
       }
     }
 
@@ -170,10 +142,9 @@ router.get("/:id/trend", requireAuth, async (req, res) => {
     return res.status(404).json({ error: "Stock record not found" });
   }
 
-  const days = 14;
-  const trend = Array.from({ length: days + 1 }, (_, i) => ({
-    day: i,
-    quantity: Math.max(0, Math.round(stock.quantity - stock.dailyConsumptionRate * i)),
+  const trend = Array.from({ length: TREND_DAYS + 1 }, (_, day) => ({
+    day,
+    quantity: Math.max(0, Math.round(stock.quantity - stock.dailyConsumptionRate * day)),
   }));
 
   res.json({

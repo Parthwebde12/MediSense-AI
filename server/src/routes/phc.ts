@@ -1,23 +1,59 @@
 import { Router } from "express";
 import PHC from "../models/PHC";
-import { requireAuth, requireRole } from "../middleware/auth";
 import MedicineStock from "../models/MedicineStock";
 import Attendance from "../models/Attendance";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { isNonNegativeNumber } from "../utils/validate";
 
 const router = Router();
 
-router.get("/", requireAuth, async (req, res) => {
-  const country = req.query.country as string | undefined;
-  res.json(await PHC.find(country ? { country } : {}).populate("country"));
+/** Returns an error message, or null when the bed counts are valid. */
+const validateBeds = (totalBeds: unknown, occupiedBeds: unknown): string | null => {
+  if (!isNonNegativeNumber(totalBeds) || !isNonNegativeNumber(occupiedBeds)) {
+    return "Beds must be non-negative numbers";
+  }
+  if (occupiedBeds > totalBeds) {
+    return "Occupied beds cannot exceed total beds";
+  }
+  return null;
+};
+
+router.get("/", requireAuth, async (_req, res) => {
+  res.json(await PHC.find());
 });
 
 router.post("/", requireAuth, requireRole("regional_admin"), async (req, res) => {
-  const { name, country, state, district, city } = req.body;
-  if (!name || !country || !state || !district || !city) {
+  const { name, state, district, city, totalBeds = 0, occupiedBeds = 0 } = req.body;
+  if (!name || !state || !district || !city) {
     return res.status(400).json({ error: "Missing required fields" });
   }
-  const phc = await PHC.create({ name, country, state, district, city });
+  const bedsError = validateBeds(totalBeds, occupiedBeds);
+  if (bedsError) {
+    return res.status(400).json({ error: bedsError });
+  }
+  const phc = await PHC.create({ name, state, district, city, totalBeds, occupiedBeds });
   res.status(201).json(phc);
+});
+
+router.patch("/:id/beds", requireAuth, requireRole("regional_admin"), async (req, res) => {
+  const { totalBeds, occupiedBeds } = req.body;
+  if (totalBeds === undefined && occupiedBeds === undefined) {
+    return res.status(400).json({ error: "Provide totalBeds and/or occupiedBeds" });
+  }
+  const phc = await PHC.findById(req.params.id);
+  if (!phc) return res.status(404).json({ error: "PHC not found" });
+
+  const nextTotal = totalBeds ?? phc.totalBeds;
+  const nextOccupied = occupiedBeds ?? phc.occupiedBeds;
+  const bedsError = validateBeds(nextTotal, nextOccupied);
+  if (bedsError) {
+    return res.status(400).json({ error: bedsError });
+  }
+
+  phc.totalBeds = nextTotal;
+  phc.occupiedBeds = nextOccupied;
+  await phc.save();
+  res.json(phc);
 });
 
 router.delete("/:id", requireAuth, requireRole("regional_admin"), async (req, res) => {
@@ -34,32 +70,6 @@ router.delete("/:id", requireAuth, requireRole("regional_admin"), async (req, re
     deletedStockRecords: stockResult.deletedCount,
     deletedAttendanceRecords: attendanceResult.deletedCount,
   });
-});
-
-router.post("/", requireAuth, requireRole("regional_admin"), async (req, res) => {
-  const { name, country, state, district, city, totalBeds, occupiedBeds } = req.body;
-  if (!name || !country || !state || !district || !city) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-  const phc = await PHC.create({
-    name, country, state, district, city,
-    totalBeds: totalBeds ?? 0,
-    occupiedBeds: occupiedBeds ?? 0,
-  });
-  res.status(201).json(phc);
-});
-
-router.patch("/:id/beds", requireAuth, requireRole("regional_admin"), async (req, res) => {
-  const { totalBeds, occupiedBeds } = req.body;
-  if (totalBeds === undefined && occupiedBeds === undefined) {
-    return res.status(400).json({ error: "Provide totalBeds and/or occupiedBeds" });
-  }
-  const update: Record<string, number> = {};
-  if (totalBeds !== undefined) update.totalBeds = totalBeds;
-  if (occupiedBeds !== undefined) update.occupiedBeds = occupiedBeds;
-  const phc = await PHC.findByIdAndUpdate(req.params.id, update, { new: true });
-  if (!phc) return res.status(404).json({ error: "PHC not found" });
-  res.json(phc);
 });
 
 export default router;

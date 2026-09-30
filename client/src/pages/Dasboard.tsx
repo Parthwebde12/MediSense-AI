@@ -27,7 +27,7 @@ import StockTrendChart from "../components/StockTrendChart";
 import ChatWidget from "../components/ChatWidget";
 import PHCMap from "../components/PHCMap";
 
-const POLL_MS = 15_000;
+ const POLL_MS = 60_000; 
 const MAX_ATTENDANCE_ROWS = 15;
 
 const LANGS: { value: Lang; label: string }[] = [
@@ -130,7 +130,7 @@ function RiskCard({ risk }: { risk: RiskScore }) {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-slate-900">{risk.phcName}</span>
-          <span className="text-xs text-slate-400">{risk.countryName}</span>
+          <span className="text-xs text-slate-400">{risk.stateName}</span>
         </div>
         <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${styles.badge}`}>
           {risk.level} · {risk.score}/100

@@ -9,7 +9,7 @@ const ROLES = ["phc_staff", "regional_admin"];
 
 
 router.post("/register", requireAuth, requireRole("regional_admin"), async (req, res) => {
-  const { name, email, password, role, phc, country } = req.body;
+  const { name, email, password, role, phc } = req.body;
   if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string") {
     return res.status(400).json({ error: "Missing required fields" });
   }
@@ -23,7 +23,7 @@ router.post("/register", requireAuth, requireRole("regional_admin"), async (req,
     return res.status(409).json({ error: "Email already registered" });
   }
   const passwordHash = await hashPassword(password);
-  const user = await User.create({ name, email, passwordHash, role, phc, country });
+  const user = await User.create({ name, email, passwordHash, role, phc });
   res.status(201).json({ user: { id: user.id, name: user.name, role: user.role } });
 });
 

@@ -9,11 +9,7 @@ const post = async <T = unknown>(url: string, body: object): Promise<T> =>
 const remove = async <T = unknown>(url: string): Promise<T> =>
   (await api.delete<T>(url)).data;
 
-export interface Country {
-  _id: string;
-  name: string;
-  code: string;
-}
+// ---- PHCs ----
 
 export interface PHC {
   _id: string;
@@ -27,7 +23,6 @@ export interface PHC {
 
 export interface NewPHCPayload {
   name: string;
-  country: string;
   state: string;
   district: string;
   city: string;
@@ -35,7 +30,6 @@ export interface NewPHCPayload {
   occupiedBeds?: number;
 }
 
-export const fetchAllCountries = () => get<Country[]>("/country");
 export const fetchAllPHCs = () => get<PHC[]>("/phc");
 export const createPHC = (payload: NewPHCPayload) => post("/phc", payload);
 export const deletePHC = (id: string) => remove(`/phc/${id}`);
@@ -76,6 +70,7 @@ export const createStock = (payload: NewStockPayload) => post("/stock", payload)
 export const fetchStockTrend = (id: string) =>
   get<StockTrendResponse>(`/stock/${id}/trend`);
 
+// ---- Alerts & redistribution ----
 
 export interface Alert {
   id: string;
@@ -103,6 +98,7 @@ export const fetchAlerts = (lang: Lang = "en") =>
 export const fetchRedistribution = (lang: Lang = "en") =>
   get<RedistributionSuggestion[]>("/stock/redistribution", { lang });
 
+// ---- Attendance ----
 
 export interface AttendanceRecord {
   _id: string;
@@ -127,11 +123,12 @@ export const fetchAllAttendance = () => get<AttendanceRecord[]>("/attendance");
 export const createAttendance = (payload: NewAttendancePayload) =>
   post("/attendance", payload);
 
+// ---- Risk scores ----
 
 export interface RiskScore {
   phcId: string;
   phcName: string;
-  countryName: string;
+  stateName: string;
   score: number;
   level: "critical" | "elevated" | "stable";
   explanation: string;
@@ -140,6 +137,7 @@ export interface RiskScore {
 export const fetchRiskScores = (lang: Lang = "en") =>
   get<RiskScore[]>("/risk", { lang });
 
+// ---- Chat ----
 
 export const sendChatMessage = async (message: string, lang: Lang = "en") =>
   (await post<{ reply: string }>("/chat", { message, lang })).reply;

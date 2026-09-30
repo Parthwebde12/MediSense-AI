@@ -5,9 +5,8 @@ import { connectDB } from "./config/db";
 import authRoutes from "./routes/auth";
 import phcRoutes from "./routes/phc";
 import medicineStockRoutes from "./routes/medicineStock";
-import attendance from "./routes/attendance";
+import attendanceRoutes from "./routes/attendance";
 import { startConsumptionSimulation } from "./utils/simulateConsumption";
-import countryRoutes from "./routes/country";
 import riskRoutes from "./routes/risk";
 import chatRoutes from "./routes/chat";
 import { apiLimiter, loginLimiter } from "./middleware/ratelimit";
@@ -16,32 +15,25 @@ dotenv.config({ path: [".env.local", ".env"] });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const SIMULATION_INTERVAL_MS = 30_000;
 
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://smart-health-brics.vercel.app",
-  ],
-}));
+const ALLOWED_ORIGINS = ["http://localhost:5173", "https://smart-health-brics.vercel.app"];
+
+app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json());
-
-app.get("/", (_req, res) => {
-  res.json({ status: "ok", message: "Smart Health BRICS server is running" });
-});
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "smart-health-brics-server" });
 });
 
-app.set("trust proxy", 1);
+app.set("trust proxy", 1); // behind a hosting proxy, so rate limits see the real client IP
 app.use("/api", apiLimiter);
 app.use("/api/auth/login", loginLimiter);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/phc", phcRoutes);
 app.use("/api/stock", medicineStockRoutes);
-app.use("/api/attendance", attendance);
-app.use("/api/country", countryRoutes);
+app.use("/api/attendance", attendanceRoutes);
 app.use("/api/risk", riskRoutes);
 app.use("/api/chat", chatRoutes);
 
@@ -55,7 +47,7 @@ const start = async () => {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     if (process.env.SIMULATE_CONSUMPTION === "true") {
-      startConsumptionSimulation(30000);
+      startConsumptionSimulation(SIMULATION_INTERVAL_MS);
     }
   });
 };

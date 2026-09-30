@@ -1,8 +1,9 @@
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import type { Request } from "express";
+import type { AuthRequest } from "./auth";
 
 const userOrIp = (req: Request) =>
-  (req as any).user?.id ?? ipKeyGenerator(req.ip ?? "");
+  (req as AuthRequest).user?.id ?? ipKeyGenerator(req.ip ?? "");
 
 export const apiLimiter = rateLimit({
   windowMs: 60_000,

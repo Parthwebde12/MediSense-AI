@@ -4,12 +4,12 @@ import PHC from "./models/PHC";
 import MedicineStock from "./models/MedicineStock";
 import Attendance from "./models/Attendance";
 
-dotenv.config({ path: ".env.local" });
+dotenv.config({ path: [".env.local", ".env"] });
 
 const cleanup = async () => {
   const uri = process.env.MONGO_URI;
   if (!uri) {
-    throw new Error("MONGO_URI is not set in .env.local");
+    throw new Error("MONGO_URI is not set in .env");
   }
 
   await mongoose.connect(uri);

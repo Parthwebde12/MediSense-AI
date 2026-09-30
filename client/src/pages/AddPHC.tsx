@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Building2, Trash2 } from "lucide-react";
-import { fetchAllCountries, createPHC, fetchAllPHCs, deletePHC } from "../lib/stockApi";
+import { createPHC, fetchAllPHCs, deletePHC } from "../lib/stockApi";
 import { formCardClass, inputClass, labelClass, selectClass, submitClass } from "../lib/styles";
 import { useFlash } from "../lib/useFlash";
 import indiaStatesDistricts from "../data/indiaStatesDistricts.json";
@@ -13,10 +13,7 @@ const PHC_DEPENDENT_KEYS = ["phcs", "stock", "attendance", "alerts", "redistribu
 
 export default function AddPHC() {
   const queryClient = useQueryClient();
-  const { data: countries } = useQuery({ queryKey: ["countries"], queryFn: fetchAllCountries });
   const { data: phcs } = useQuery({ queryKey: ["phcs"], queryFn: fetchAllPHCs });
-
-  const india = countries?.find((c) => c.code === "IN");
 
   const [name, setName] = useState("");
   const [state, setState] = useState("");
@@ -57,10 +54,9 @@ export default function AddPHC() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !india || !state || !district || !city) return;
+    if (!name || !state || !district || !city) return;
     mutation.mutate({
       name,
-      country: india._id,
       state,
       district,
       city,
@@ -77,6 +73,11 @@ export default function AddPHC() {
       subtitle="Register a new Primary Health Centre."
     >
       {saved && <Banner variant="success">PHC added successfully.</Banner>}
+      {mutation.isError && (
+        <Banner variant="error">
+          Failed to add PHC. Check that occupied beds don't exceed total beds.
+        </Banner>
+      )}
 
       <form onSubmit={handleSubmit} className={formCardClass}>
         <div>
