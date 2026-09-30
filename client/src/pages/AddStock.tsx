@@ -1,147 +1,203 @@
-import { useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { HeartPulse, Globe2, Sparkles } from "lucide-react";
-import api from "../lib/api";
-import { useAuth } from "../context/useAuth";
-import { inputClass, labelClass } from "../lib/styles";
+import { fetchAllPHCs, createStock } from "../lib/stockApi";
+import type { PHC } from "../lib/stockApi";
 
-const DEMO_EMAIL = import.meta.env.VITE_DEMO_EMAIL as string | undefined;
-const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined;
-const hasDemo = Boolean(DEMO_EMAIL && DEMO_PASSWORD);
-
-export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+export default function AddStock() {
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const [phcs, setPhcs] = useState<PHC[]>([]);
+  const [phc, setPhc] = useState("");
+  const [medicineName, setMedicineName] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [unit, setUnit] = useState("");
+  const [dailyConsumptionRate, setDailyConsumptionRate] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    const loadPHCs = async () => {
+      try {
+        const data = await fetchAllPHCs();
+        setPhcs(data);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load PHCs");
+      }
+    };
+
+    loadPHCs();
+  }, []);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
     setError("");
-    setLoading(true);
+    setSuccess("");
+
+    if (!phc || !medicineName || !quantity || !unit) {
+      setError("Please fill all required fields");
+      return;
+    }
+
     try {
-      const res = await api.post("/auth/login", { email, password });
-      login(res.data.token, res.data.user);
-      navigate("/dashboard");
-    } catch {
-      setError("Invalid email or password");
+      setLoading(true);
+
+      await createStock({
+        phc,
+        medicineName,
+        quantity: Number(quantity),
+        unit,
+        dailyConsumptionRate: Number(dailyConsumptionRate || 0),
+      });
+
+      setSuccess("Stock added successfully");
+
+      setMedicineName("");
+      setQuantity("");
+      setUnit("");
+      setDailyConsumptionRate("");
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1000);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to add stock");
     } finally {
       setLoading(false);
     }
   };
 
-  const fillDemo = () => {
-    setEmail(DEMO_EMAIL ?? "");
-    setPassword(DEMO_PASSWORD ?? "");
-  };
-
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-1/2 bg-slate-900 text-white p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-64 h-64 bg-blue-500 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-10 w-80 h-80 bg-emerald-500 rounded-full blur-3xl" />
-        </div>
+    <div className="min-h-screen p-6">
+      <div className="mx-auto max-w-xl">
+        <h1 className="mb-2 text-2xl font-bold">
+          Add Medicine Stock
+        </h1>
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-16">
-            <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center">
-              <HeartPulse size={18} className="text-slate-900" />
-            </div>
-            <span className="font-semibold text-lg">Smart Health</span>
+        <p className="mb-6 text-gray-600">
+          Add medicine stock for a Primary Health Centre.
+        </p>
+
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 rounded-xl border p-6 shadow-sm"
+        >
+          <div>
+            <label className="mb-1 block font-medium">
+              PHC
+            </label>
+
+            <select
+              value={phc}
+              onChange={(e) => setPhc(e.target.value)}
+              className="w-full rounded-lg border p-3"
+              required
+            >
+              <option value="">Select PHC</option>
+
+              {phcs.map((item) => (
+                <option key={item._id} value={item._id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <h1 className="text-4xl font-semibold leading-tight mb-4">
-            Predicting shortages
-            <br />
-            before they happen.
-          </h1>
-          <p className="text-slate-400 text-base max-w-md">
-            An AI-powered platform that forecasts medicine stock-outs and recommends cross-border
-            redistribution across health centres.
-          </p>
-        </div>
+          <div>
+            <label className="mb-1 block font-medium">
+              Medicine Name
+            </label>
 
-        <div className="relative z-10 space-y-4">
-          <div className="flex items-center gap-3 text-sm text-slate-300">
-            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center shrink-0">
-              <Sparkles size={15} />
-            </div>
-            Gemini-powered early-warning alerts
-          </div>
-          <div className="flex items-center gap-3 text-sm text-slate-300">
-            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center shrink-0">
-              <Globe2 size={15} />
-            </div>
-            Cross-State redistribution matching
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-slate-50 p-6">
-        <div className="w-full max-w-sm">
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center">
-              <HeartPulse size={18} className="text-white" />
-            </div>
-            <span className="font-semibold text-lg text-slate-900">Smart Health</span>
-          </div>
-
-          <h2 className="text-xl font-semibold text-slate-900 mb-1">Welcome back</h2>
-          <p className="text-sm text-slate-500 mb-6">Sign in to your regional dashboard</p>
-
-          <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            {error && (
-              <p className="text-red-600 text-sm mb-4 bg-red-50 rounded-lg px-3 py-2">{error}</p>
-            )}
-
-            <label className={labelClass}>Email</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={`${inputClass} mb-4`}
+              type="text"
+              value={medicineName}
+              onChange={(e) => setMedicineName(e.target.value)}
+              placeholder="e.g. Paracetamol"
+              className="w-full rounded-lg border p-3"
               required
             />
+          </div>
 
-            <label className={labelClass}>Password</label>
+          <div>
+            <label className="mb-1 block font-medium">
+              Quantity
+            </label>
+
             <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={`${inputClass} mb-6`}
+              type="number"
+              min="0"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="e.g. 500"
+              className="w-full rounded-lg border p-3"
               required
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium">
+              Unit
+            </label>
+
+            <input
+              type="text"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              placeholder="e.g. tablets, bottles"
+              className="w-full rounded-lg border p-3"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block font-medium">
+              Daily Consumption Rate
+            </label>
+
+            <input
+              type="number"
+              min="0"
+              value={dailyConsumptionRate}
+              onChange={(e) => setDailyConsumptionRate(e.target.value)}
+              placeholder="e.g. 25"
+              className="w-full rounded-lg border p-3"
+            />
+          </div>
+
+          {error && (
+            <p className="rounded-lg bg-red-50 p-3 text-red-600">
+              {error}
+            </p>
+          )}
+
+          {success && (
+            <p className="rounded-lg bg-green-50 p-3 text-green-600">
+              {success}
+            </p>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => navigate("/dashboard")}
+              className="rounded-lg border px-5 py-3"
+            >
+              Cancel
+            </button>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-slate-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="rounded-lg bg-black px-5 py-3 text-white disabled:opacity-50"
             >
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? "Adding..." : "Add Stock"}
             </button>
-          </form>
-
-          {hasDemo && (
-            <button
-              type="button"
-              onClick={fillDemo}
-              className="mt-4 w-full text-left bg-white border border-slate-100 rounded-2xl px-4 py-3 text-xs text-slate-500 hover:border-slate-200 hover:shadow-sm transition-all"
-            >
-              <p className="font-medium text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <Sparkles size={13} /> Try the demo account
-              </p>
-              <p>
-                Email: <span className="font-mono text-slate-700">{DEMO_EMAIL}</span>
-              </p>
-              <p>
-                Password: <span className="font-mono text-slate-700">{DEMO_PASSWORD}</span>
-              </p>
-            </button>
-          )}
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );
